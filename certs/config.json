@@ -1,0 +1,17 @@
+{
+  "record": {
+    "hosts": [
+      "localhost",
+      "26.1.98.157",
+      "192.168.56.1",
+      "172.25.124.124",
+      "192.168.144.47",
+      "127.0.0.1"
+    ],
+    "hash": {
+      "key": "8ad6a3e8b511157a921da030ab7ac164ea560d4d21569798caccdc7954a099aa",
+      "cert": "cd05e17a68ced2f65392c719a18ffd1b30963ccabd30367591ac578e3a2ec552"
+    }
+  },
+  "configFilePath": "C:\\Users\\Mrcavas\\Desktop\\kolya_stuff\\bilee-pay9999\\certs\\config.json"
+}
