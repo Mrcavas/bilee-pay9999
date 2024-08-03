@@ -3,14 +3,14 @@ module.exports = {
   content: ["./src/**/*.{html,js,jsx,ts,tsx}"],
   theme: {
     fontSize: {
-      xxs: ["12px", "normal"],
-      xs: ["14px", "normal"],
-      sm: ["16px", "normal"],
-      card: ["18px", "normal"],
-      base: ["20px", "normal"],
-      md: ["26px", "normal"],
-      lg: ["32px", "normal"],
-      xl: ["42px", "normal"],
+      xxs: ["12px", "1.2"],
+      xs: ["14px", "1.2"],
+      sm: ["16px", "1.2"],
+      card: ["18px", "1.2"],
+      base: ["20px", "1.2"],
+      md: ["26px", "1.2"],
+      lg: ["32px", "1.2"],
+      xl: ["42px", "1.2"],
     },
     extend: {
       borderRadius: {

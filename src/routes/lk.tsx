@@ -20,7 +20,7 @@ export default function LK(props: RouteSectionProps) {
     <MainLayout dontCenter class="gap-4">
       <div class="flex flex-row justify-between rounded-card bg-fg px-4 py-3.5">
         <button class="flex flex-row items-center gap-[12px] rounded-full" onClick={() => navigate("/lk")}>
-          <Show when={location.pathname !== "/lk"}>
+          <Show when={location.pathname.includes("shop")}>
             <Icon icon={arrow} class="h-6 w-6 shrink-0 bg-text" />
           </Show>
           <div class="flex h-10 shrink flex-row items-center gap-2 pl-0.5 pr-2">
@@ -31,7 +31,7 @@ export default function LK(props: RouteSectionProps) {
           </div>
         </button>
         <Show
-          when={location.pathname !== "/lk"}
+          when={location.pathname.includes("shop")}
           fallback={
             <div class="flex flex-row items-center gap-3">
               <span class="text-card underline underline-offset-2">ptanyuk01</span>

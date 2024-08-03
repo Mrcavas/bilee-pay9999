@@ -584,8 +584,8 @@ function IconSelector(props: IconSelectorProps) {
         <Select.Trigger class="relative flex h-full w-full flex-row items-center gap-1 rounded-content bg-hint2/15 p-2">
           <Show
             when={selectedIcon()}
-            fallback={<Icon icon={selectIcon} class="aspect-square h-[calc(100%-0.25rem)] bg-text" />}>
-            <img src={selectedIcon()!.url} alt="" class="aspect-square h-[calc(100%-0.25rem)]" />
+            fallback={<Icon icon={selectIcon} class="h-[calc(1rem+1.2em)] w-[calc(1rem+1.2em)] bg-text" />}>
+            <img src={selectedIcon()!.url} alt="" class="h-[calc(1rem+1.2em)] w-[calc(1rem+1.2em)]" />
           </Show>
           <Select.Indicator>
             <Icon

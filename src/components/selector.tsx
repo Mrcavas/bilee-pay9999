@@ -33,7 +33,10 @@ export default function Selector(props: SelectorProps & Pick<JSX.IntrinsicElemen
           <Select.Indicator>
             <Icon
               icon={arrow}
-              class={"h-6 w-6 bg-text transition-transform duration-150 " + (isOpen() ? "rotate-90" : "-rotate-90")}
+              class={
+                "h-[1.2em] w-[1.2em] bg-text transition-transform duration-150 " +
+                (isOpen() ? "rotate-90" : "-rotate-90")
+              }
             />
           </Select.Indicator>
         </Select.Trigger>
