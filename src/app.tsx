@@ -1,6 +1,6 @@
 import { Router } from "@solidjs/router"
 import { FileRoutes } from "@solidjs/start/router"
-import { ErrorBoundary, JSX, ParentProps, Show, splitProps, Suspense } from "solid-js"
+import { createSignal, ErrorBoundary, JSX, ParentProps, Show, splitProps, Suspense } from "solid-js"
 import "./app.css"
 import LegalFooter from "./components/legal-footer"
 import Error from "./routes/(error)"

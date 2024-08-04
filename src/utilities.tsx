@@ -236,7 +236,7 @@ export function createPasswordShower() {
 
   const append = (
     <button onClick={() => setType(_ => (type() === "password" ? "text" : "password"))}>
-      <Show when={type() === "password"} fallback={<Icon icon={hidePassword} class="h-6 w-6 bg-primary" />}>
+      <Show when={type() === "text"} fallback={<Icon icon={hidePassword} class="h-6 w-6 bg-primary" />}>
         <Icon icon={showPassword} class="h-6 w-6 bg-primary" />
       </Show>
     </button>
@@ -247,3 +247,5 @@ export function createPasswordShower() {
     append,
   })
 }
+
+export const mainScrollable = () => document.getElementById("main")!

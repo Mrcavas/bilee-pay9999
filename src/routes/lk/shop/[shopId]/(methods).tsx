@@ -13,25 +13,38 @@ import {
   SortableProvider,
   transformStyle,
 } from "@thisbeyond/solid-dnd"
-import { Accessor, batch, createSignal, For, Index, JSX, onCleanup, onMount, Setter, Show } from "solid-js"
+import {
+  Accessor,
+  batch,
+  createEffect,
+  createSignal,
+  For,
+  Index,
+  JSX,
+  onCleanup,
+  onMount,
+  Setter,
+  Show,
+} from "solid-js"
 import { createStore } from "solid-js/store"
 import { Portal } from "solid-js/web"
 import add from "~/assets/add.svg"
+import arrow from "~/assets/arrow.svg"
 import check from "~/assets/check.svg"
 import close from "~/assets/close.svg"
 import drag from "~/assets/drag.svg"
 import pause from "~/assets/pause.svg"
 import rearrange from "~/assets/rearrange.svg"
 import sbpImg from "~/assets/sbp.svg"
+import selectIcon from "~/assets/select-icon.svg"
 import trash from "~/assets/trash.svg"
+import Button from "~/components/button"
 import { GoCardBtn, GoCardInsides } from "~/components/gocard"
 import Icon from "~/components/icon"
 import Input from "~/components/input"
 import Selector from "~/components/selector"
 import { ICONS } from "~/mocked-data"
-import arrow from "~/assets/arrow.svg"
-import selectIcon from "~/assets/select-icon.svg"
-import Button from "~/components/button"
+import { mainScrollable } from "~/utilities"
 
 const sbpIcon: Icon = {
   id: 1,
@@ -97,8 +110,8 @@ function SecondaryDroppable(props: { items: number[]; methods: Accessor<PaymentM
           fallback={(() => {
             let div: HTMLDivElement | undefined
 
-            onMount(() => document.getElementById("main")?.scrollBy(0, div?.getBoundingClientRect().height! + 12))
-            onCleanup(() => document.getElementById("main")?.scrollBy(0, -(div?.getBoundingClientRect().height! + 12)))
+            onMount(() => batch(() => mainScrollable().scrollBy(0, div?.getBoundingClientRect().height! + 12)))
+            onCleanup(() => batch(() => mainScrollable().scrollBy(0, -(div?.getBoundingClientRect().height! + 12))))
 
             return (
               <div
@@ -332,12 +345,13 @@ export default function MethodsTab() {
         when={isEditing()}
         fallback={
           <button
-            class="mb-3 flex flex-row items-center gap-2.5 px-2"
+            class={"mb-3 flex flex-row items-center gap-2.5 px-2 " + (methods().length <= 1 ? "text-hint2" : "")}
+            disabled={methods().length <= 1}
             onClick={() => {
               setIsEditing(true)
-              setTimeout(() => editorRef()?.scrollIntoView({ behavior: "smooth" }), 0)
+              batch(() => editorRef()?.scrollIntoView({ behavior: "smooth" }))
             }}>
-            <Icon icon={rearrange} class="h-6 w-6 bg-text" />
+            <Icon icon={rearrange} class={"h-6 w-6 " + (methods().length <= 1 ? "bg-hint2" : "bg-text")} />
             <div class="font-semibold">Изменить порядок</div>
           </button>
         }>
@@ -359,6 +373,7 @@ export default function MethodsTab() {
               setMethods([...methods])
             })
             setIsEditing(false)
+            batch(() => mainScrollable().scrollTo({ behavior: "smooth", top: 0 }))
           }}>
           <Icon icon={check} class="h-6 w-6 bg-text-on-primary" />
           <div class="font-semibold">Сохранить</div>
@@ -456,7 +471,22 @@ function EditMethodDialog(
                 <button
                   class="flex w-full flex-row items-center justify-center gap-2.5 rounded-content bg-error py-4 font-semibold text-text-on-primary"
                   onClick={() => {
-                    props.setMethods(props.methods().filter(method => method.id !== props.method!.id))
+                    const newMethods = props.methods().reduce((filtered, method) => {
+                      if (method.id === props.method!.id) return filtered
+                      else
+                        return [
+                          ...filtered,
+                          {
+                            ...method,
+                            position_index:
+                              method.position_index > props.method!.position_index
+                                ? method.position_index - 1
+                                : method.position_index,
+                          },
+                        ]
+                    }, [] as PaymentMethod[])
+                    if (newMethods.length > 0) newMethods.find(method => method.position_index === 1)!.primary = true
+                    props.setMethods(newMethods)
                     setIsOpen(false)
                   }}>
                   <Icon icon={trash} class="h-6 w-6 bg-text-on-primary" />
@@ -526,7 +556,7 @@ function EditMethodDialog(
                       }
                     })
                   )
-                } else {
+                } else if (props.methods().length > 0) {
                   props.setMethods([
                     ...props.methods().map(m => ({
                       ...m,
@@ -534,6 +564,20 @@ function EditMethodDialog(
                     })),
                     {
                       id: Math.max(...props.methods().map(m => m.id)) + 1,
+                      name: name(),
+                      min_amount: +minAmount(),
+                      max_amount: +maxAmount(),
+                      commission: +commission(),
+                      min_commission_amount: +minCommissionAmount(),
+                      primary: true,
+                      position_index: 1,
+                      icon: sbpIcon,
+                    },
+                  ])
+                } else {
+                  props.setMethods([
+                    {
+                      id: 0,
                       name: name(),
                       min_amount: +minAmount(),
                       max_amount: +maxAmount(),

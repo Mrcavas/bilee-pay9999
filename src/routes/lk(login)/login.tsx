@@ -4,7 +4,7 @@ import { tryLogin } from "~/api"
 import { MainLayout } from "~/app"
 import Button from "~/components/button"
 import Input from "~/components/input"
-import { areFieldsFilled, createValidatedField, isValidEmail } from "~/utilities"
+import { areFieldsFilled, createPasswordShower, createValidatedField, isValidEmail } from "~/utilities"
 
 export default function Login() {
   const navigate = useNavigate()
@@ -12,6 +12,7 @@ export default function Login() {
   const email = createValidatedField<string>(isValidEmail, "")
   const password = createValidatedField<string>(v => !!v, "")
   const [errorMessage, setErrorMessage] = createSignal("")
+  const passwordShowerProps = createPasswordShower()
 
   return (
     <MainLayout noFooter class="max-w-[500px]">
@@ -27,7 +28,7 @@ export default function Login() {
           <div class="mt-1 w-full text-center text-sm text-error">{errorMessage()}</div>
         </Show>
         <Input {...email.inputProps()} type="email" name="Email" class="mt-1" />
-        <Input {...password.inputProps()} type="password" name="Пароль" class="mt-2" />
+        <Input {...password.inputProps()} {...passwordShowerProps()} name="Пароль" class="mt-2" />
 
         <Button
           class="mt-4"
