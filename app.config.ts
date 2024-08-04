@@ -2,6 +2,6 @@ import { defineConfig } from "@solidjs/start/config"
 
 export default defineConfig({
   server: {
-    preset: "bun",
+    preset: process.env.VERCEL ? "vercel" : "bun",
   },
 })
