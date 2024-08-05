@@ -1,3 +1,14 @@
+type ApiResponse<T> =
+  | ({
+      success: true
+    } & T)
+  | {
+      success: false
+      error: {
+        code: string
+      }
+    }
+
 type PaymentMethod = {
   id: number
   name: string
@@ -19,4 +30,17 @@ type Icon = {
   id: number
   url: string
   name: string
+}
+
+type Project = {
+  id: number
+  name: string
+  picture: string
+  url: string
+  link: string
+  support_url: string
+}
+
+interface Window {
+  accessToken: string
 }

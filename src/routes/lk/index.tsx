@@ -1,8 +1,8 @@
 import { Dialog, Tooltip } from "@ark-ui/solid"
-import { RouteSectionProps, useNavigate } from "@solidjs/router"
+import { RouteSectionProps, createAsync, useNavigate } from "@solidjs/router"
 import { createSignal, Show } from "solid-js"
 import { For, Portal } from "solid-js/web"
-import { createNewProject } from "~/api"
+import { createAPIResource, createNewProject, getShops } from "~/api"
 import add from "~/assets/add.svg"
 import botImg from "~/assets/bot.svg"
 import close from "~/assets/close.svg"
@@ -13,30 +13,31 @@ import { GoCardA, GoCardBtn } from "~/components/gocard"
 import Icon from "~/components/icon"
 import InfoTooltip from "~/components/info-tooltip"
 import Input from "~/components/input"
-import { SHOPS } from "~/mocked-data"
-import { areFieldsFilled, createValidatedField, isValidUrl } from "~/utilities"
+import { areFieldsFilled, createValidatedField, isValidPath, isValidUrl, resetFields } from "~/utilities"
 
 export default function LK(props: RouteSectionProps) {
   const bot = () => <Icon icon={botImg} class="h-6 w-6 bg-text" />
 
+  const shops = createAPIResource(getShops)
   const [isOpen, setIsOpen] = createSignal(false)
   const supportUrl = createValidatedField<string>(isValidUrl, "")
-  const url = createValidatedField<string>(isValidUrl, "")
+  const path = createValidatedField<string>(isValidPath, "")
   const token = createValidatedField<string>(s => !!s, "")
   const [isLoading, setLoading] = createSignal(false)
+  const [errorMessage, setErrorMessage] = createSignal<string>()
   const navigate = useNavigate()
 
   return (
     <div>
       <div class="mb-3 mt-3 px-4">Выберите магазин</div>
       <div class="flex flex-wrap gap-3">
-        <For each={SHOPS}>
+        <For each={shops()}>
           {shop => (
             <GoCardA
               icon={bot()}
-              description={shop.description}
+              description={`@${shop.url.substring(13)}`}
               title={shop.name}
-              href={`shop/${shop.id}`}
+              href={`shop/${shop.link}`}
               class="flex-grow rounded-card"
             />
           )}
@@ -46,7 +47,8 @@ export default function LK(props: RouteSectionProps) {
           onOpenChange={({ open }) => setIsOpen(open)}
           open={isOpen()}
           onExitComplete={() => {
-            supportUrl.set("")
+            setErrorMessage()
+            resetFields(supportUrl, path, token)
           }}>
           <Dialog.Trigger
             asChild={props => (
@@ -69,18 +71,21 @@ export default function LK(props: RouteSectionProps) {
                     <Icon icon={close} class="h-6 w-6 bg-text" />
                   </Dialog.CloseTrigger>
                 </div>
+                <Show when={errorMessage()}>
+                  <div class="-mt-2 w-full text-center text-sm text-error">{errorMessage()}</div>
+                </Show>
 
                 <Input {...supportUrl.inputProps()} type="text" name="Ссылка на поддержку" class="mt-2" />
 
                 <Input
-                  {...url.inputProps()}
+                  {...path.inputProps()}
                   type="text"
-                  name="Уникальная ссылка на страницу"
+                  name="Уникальный путь страницы"
                   class="mt-2"
                   append={
                     <InfoTooltip>
-                      Ссылка на страницу, где будет происходить оплата. Пример:{" "}
-                      <span class="font-semibold">https://o.bilee.ru/my_bot</span>
+                      Путь к странице, где будет происходить оплата. Пример: o.bilee.ru/
+                      <span class="font-semibold">my_bot</span>
                     </InfoTooltip>
                   }
                 />
@@ -96,12 +101,18 @@ export default function LK(props: RouteSectionProps) {
                 <Button
                   class="mt-4"
                   loading={isLoading()}
-                  disabled={!areFieldsFilled(supportUrl, url, token)}
+                  disabled={!areFieldsFilled(supportUrl, path, token)}
                   onClick={async () => {
                     setLoading(true)
-                    const { id } = await createNewProject(supportUrl()!, url(), token()!)
-                    navigate(`/lk/shop/${id}`)
-                    setLoading(false)
+                    const resp = await createNewProject(supportUrl()!, path(), token()!)
+                    if (resp.success) navigate(`/lk/shop/${resp.result.link}`)
+                    else {
+                      setLoading(false)
+                      if (resp.error.code === "LINK_EXISTS") {
+                        path.invalidate()
+                        setErrorMessage("Выбранный путь уже существует")
+                      }
+                    }
                   }}>
                   Создать
                 </Button>

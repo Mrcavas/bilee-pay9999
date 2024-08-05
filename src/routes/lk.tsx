@@ -1,22 +1,21 @@
 import { Menu } from "@ark-ui/solid"
 import { createAsync, RouteSectionProps, useLocation, useNavigate, useParams } from "@solidjs/router"
 import { createEffect, For, Show } from "solid-js"
-import { getShops } from "~/api"
+import { createAPIResource, getShops, logout } from "~/api"
 import { MainLayout } from "~/app"
 import arrow from "~/assets/arrow.svg"
 import check from "~/assets/check.svg"
-import logout from "~/assets/logout.svg"
+import logoutIcon from "~/assets/logout.svg"
 import Broadcast from "~/components/broadcast"
 import { GoCardInsides } from "~/components/gocard"
 import Icon from "~/components/icon"
-import { SHOPS } from "~/mocked-data"
 
 export default function LK(props: RouteSectionProps) {
-  const shops = createAsync(() => getShops())
+  const shops = createAPIResource(getShops)
   const location = useLocation()
   const navigate = useNavigate()
-  const selectedShopId = () => (props.params.shopId ? +props.params.shopId : undefined)
-  const selectedShop = () => (selectedShopId() ? shops()!.find(shop => shop.id === selectedShopId()) : undefined)
+  const selectedShop = () =>
+    props.params.shopPath ? shops()?.find(shop => shop.link === props.params.shopPath) : undefined
 
   return (
     <MainLayout dontCenter class="gap-4">
@@ -35,10 +34,13 @@ export default function LK(props: RouteSectionProps) {
         <Show
           when={location.pathname.includes("shop")}
           fallback={
-            <div class="flex flex-row items-center gap-3">
+            <button class="flex flex-row items-center gap-3" onClick={async () => {
+              await logout()
+              navigate("/lk/login")
+            }}>
               <span class="text-card underline underline-offset-2">ptanyuk01</span>
-              <Icon icon={logout} class="h-6 w-6 bg-text" />
-            </div>
+              <Icon icon={logoutIcon} class="h-6 w-6 bg-text" />
+            </button>
           }>
           <Menu.Root
             positioning={{ placement: "bottom-end", offset: { crossAxis: 12 } }}
@@ -52,7 +54,7 @@ export default function LK(props: RouteSectionProps) {
                   {selectedShop()?.name}
                 </span>
                 <span class="overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xs">
-                  @{selectedShop()?.link}
+                  @{selectedShop()?.url.substring(13)}
                 </span>
               </div>
               <Icon icon={arrow} class="ml-4 h-6 w-6 shrink-0 -rotate-90 bg-text" />
@@ -60,15 +62,15 @@ export default function LK(props: RouteSectionProps) {
             <Menu.Positioner>
               <Menu.Content class="z-10 overflow-hidden rounded-card bg-fg p-3 shadow-menu focus:outline-none">
                 <div class="px-2 py-1 text-sm">Сменить магазин</div>
-                <For each={SHOPS}>
+                <For each={shops()}>
                   {shop => (
                     <Menu.Item
-                      value={shop.id.toString()}
+                      value={shop.link.toString()}
                       class="flex cursor-pointer flex-row items-center gap-3 rounded-[18px] p-2 data-[highlighted]:bg-text/10">
                       <GoCardInsides
-                        icon={<img src={shop.icon} class="h-10 w-10 rounded-full" />}
+                        icon={<img src={shop.picture} class="h-10 w-10 rounded-full" />}
                         title={shop.name}
-                        description={shop.description}
+                        description={`@${shop.url.substring(13)}`}
                         noArrow>
                         <Show when={selectedShop()?.id === shop.id}>
                           <Icon icon={check} class="h-6 w-6 bg-text" />

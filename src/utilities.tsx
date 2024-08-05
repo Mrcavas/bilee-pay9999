@@ -16,9 +16,9 @@ const getNonDigitAmount = (x: string) => x.replace(/[0-9]/g, "").length
 const removeThousandSeparators = (x: any) =>
   x.toString().replaceAll(" ", String.fromCharCode(160)).replaceAll(thousandSeparator, "")
 
-const thousandSeparator = formatNumber("1000").replace(/[0-9]/g, "")
+const thousandSeparator = formatNumber(1000).replace(/[0-9]/g, "")
 
-const commaSeparator = formatNumber("0.01").replace(/[0-9]/g, "")
+const commaSeparator = formatNumber(0.01).replace(/[0-9]/g, "")
 
 export const createFormatHandler = (input: () => HTMLDivElement) => {
   let currentValue: string
@@ -143,6 +143,7 @@ type Field<T> = Accessor<T> & {
   invalid: Accessor<boolean>
   isValid: () => boolean
   invalidate: () => void
+  reset: () => void
   inputProps: () => {
     onInput: (value: T) => void
     invalid: boolean
@@ -166,6 +167,10 @@ export function createValidatedField<T>(predicate: (value: T) => boolean, initia
     invalid: isInvalid,
     isValid: () => value() && !isInvalid(),
     invalidate: () => setInvalid(true),
+    reset: () => {
+      setValue(_ => initial)
+      setInvalid(false)
+    },
   }
 
   return Object.assign(value, methods, {
@@ -178,16 +183,8 @@ export function createValidatedField<T>(predicate: (value: T) => boolean, initia
   })
 }
 
-const urlRegex =
-  /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/
-
-export const isValidUrl = (value: string) => urlRegex.test(value)
-
-const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]+$/
-
-export const isValidEmail = (value: string) => emailRegex.test(value)
-
 export const areFieldsFilled = (...fields: Field<any>[]) => fields.every(f => f.isValid())
+export const resetFields = (...fields: Field<any>[]) => fields.forEach(f => f.reset())
 
 export function analyzePassword(password: string) {
   const upperCaseRegex = /^[A-Z]$/
@@ -250,3 +247,13 @@ export function createPasswordShower() {
 }
 
 export const mainScrollable = () => document.getElementById("main")!
+
+export const isValidPath = (link: string) => link.length >= 3 && link.length <= 30 && /^[a-zA-Z0-9-_]+$/.test(link)
+
+const urlRegex =
+  /^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$/
+
+export const isValidUrl = (value: string) => urlRegex.test(value)
+
+const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]+$/
+export const isValidEmail = (value: string) => emailRegex.test(value)

@@ -1,8 +1,8 @@
 import { defineConfig } from "@solidjs/start/config"
 
 export default defineConfig({
-  middleware: "./src/middleware.ts",
+  middleware: "./src/middleware.tsx",
   server: {
-    preset: process.env.VERCEL ? "vercel" : "bun",
+    preset: "bun",
   },
 })

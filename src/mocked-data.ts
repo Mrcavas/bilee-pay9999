@@ -1,32 +1,5 @@
 import sbp from "~/assets/sbp.svg?url"
 
-export const SHOPS = [
-  {
-    id: 1,
-    name: "Test Bot",
-    icon: "/avatar.jpg",
-    description: "@test_bot",
-  },
-  {
-    id: 2,
-    name: "HoldikGems Bot",
-    icon: "/avatar.jpg",
-    description: "@HoldikGems_bot",
-  },
-  {
-    id: 3,
-    name: "Warison Donate Bot",
-    icon: "/avatar.jpg",
-    description: "@warisondonatebot",
-  },
-  {
-    id: 4,
-    name: "Magic Brawl DONATE",
-    icon: "/avatar.jpg",
-    description: "@magicbrawlshop_bot",
-  },
-]
-
 export const ICONS: Icon[] = [
   {
     id: 1,

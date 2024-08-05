@@ -10,7 +10,7 @@ export default function Shop(props: RouteSectionProps) {
   const tabsRefs: Record<string, HTMLButtonElement> = {}
   const [tab, setTab] = createSignal("bot")
 
-  createEffect(() => props.params.shopId && setTab("bot"))
+  createEffect(() => props.params.shopPath && setTab("bot"))
 
   onMount(() => {
     let hash = props.location.hash.slice(1)
@@ -29,7 +29,7 @@ export default function Shop(props: RouteSectionProps) {
         <Tabs.List class="scrollbar-hide relative flex w-full flex-row justify-between gap-6 overflow-x-auto px-9 pb-1.5 pt-2 text-sm font-semibold *:scroll-mx-10 sm:px-10">
           <Tabs.Indicator class="top-0 h-0.5 w-[calc(var(--width)+18px)] translate-x-[-9px] rounded-b-full bg-primary" />
           <Tabs.Trigger ref={tabsRefs.bot} value="bot" class="shrink-0">
-            Telegram бот
+            Основное
           </Tabs.Trigger>
           <Tabs.Trigger ref={tabsRefs.methods} value="methods" class="shrink-0">
             Способы оплаты

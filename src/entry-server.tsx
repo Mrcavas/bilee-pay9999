@@ -1,5 +1,6 @@
 // @refresh reload
 import { createHandler, StartServer } from "@solidjs/start/server"
+// import { serverAccessToken } from "./middleware"
 
 export default createHandler(() => (
   <StartServer
@@ -15,6 +16,14 @@ export default createHandler(() => (
           <div id="app" class="h-full w-full">
             {children}
           </div>
+          {/* <script>
+            window.accessToken = "
+            {(() => {
+              console.log(`serverAccess: ${serverAccessToken}`)
+              return serverAccessToken ?? ""
+            })()}
+            "
+          </script> */}
           {scripts}
         </body>
       </html>
