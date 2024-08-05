@@ -1,6 +1,6 @@
 // @refresh reload
 import { createHandler, StartServer } from "@solidjs/start/server"
-// import { serverAccessToken } from "./middleware"
+import { getRequestEvent } from "solid-js/web"
 
 export default createHandler(() => (
   <StartServer
@@ -16,14 +16,7 @@ export default createHandler(() => (
           <div id="app" class="h-full w-full">
             {children}
           </div>
-          {/* <script>
-            window.accessToken = "
-            {(() => {
-              console.log(`serverAccess: ${serverAccessToken}`)
-              return serverAccessToken ?? ""
-            })()}
-            "
-          </script> */}
+          <script>{`window.accessToken = "${getRequestEvent()?.nativeEvent.context.accessToken ?? ""}"`}</script>
           {scripts}
         </body>
       </html>

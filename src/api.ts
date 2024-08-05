@@ -1,7 +1,6 @@
 import { cache, createAsync, redirect, revalidate } from "@solidjs/router"
 import axios from "axios"
 import { getRequestEvent, isServer } from "solid-js/web"
-import { serverAccessToken } from "./middleware"
 
 const baseConfig = {
   baseURL: "https://mrcavas.bilee.ru/api/v1/",
@@ -14,19 +13,17 @@ const apiConfig = (authToken?: string) =>
         ...baseConfig,
         headers: {
           Authorization: authToken,
-          Cookie: getRequestEvent()?.request.headers.get("cookie"),
         },
       }
-    : {
-        ...baseConfig,
-        headers: {
-          Cookie: getRequestEvent()?.request.headers.get("cookie"),
-        },
-      }
+    : baseConfig
 
 async function getAccessToken() {
-  if (isServer) return serverAccessToken
-  else if (!window.accessToken) return (window.accessToken = await refreshTokens())
+  if (isServer) {
+    return (async () => {
+      "use server"
+      return getRequestEvent()?.nativeEvent.context.accessToken
+    })()
+  } else if (!window.accessToken) return (window.accessToken = await refreshTokens())
   else {
     console.log("using accessToken from window.accessToken")
     return window.accessToken
@@ -39,20 +36,7 @@ export async function refreshTokens() {
     undefined,
     apiConfig()
   )
-  if (!("access_token" in resp.data)) {
-    console.log("redirecting to login")
-    if (isServer) {
-      // // import { sendRedirect } from "vinxi/http"
-      // const sendRedirect = (await import("vinxi/http")).sendRedirect
-      // sendRedirect("/lk/login")
-    }
-    throw redirect("/lk/login")
-  }
-  if (isServer) {
-    console.log("refreshing tokens on server")
-    console.log(resp.headers)
-    if (resp.headers["set-cookie"]) getRequestEvent()?.response.headers.set("Set-Cookie", resp.headers["set-cookie"][0])
-  }
+  if (!("access_token" in resp.data)) throw redirect("/lk/login")
   return resp.data.access_token
 }
 
