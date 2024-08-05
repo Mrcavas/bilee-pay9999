@@ -1,6 +1,7 @@
 import { Menu } from "@ark-ui/solid"
-import { RouteSectionProps, useLocation, useNavigate, useParams } from "@solidjs/router"
+import { createAsync, RouteSectionProps, useLocation, useNavigate, useParams } from "@solidjs/router"
 import { createEffect, For, Show } from "solid-js"
+import { getShops } from "~/api"
 import { MainLayout } from "~/app"
 import arrow from "~/assets/arrow.svg"
 import check from "~/assets/check.svg"
@@ -11,10 +12,11 @@ import Icon from "~/components/icon"
 import { SHOPS } from "~/mocked-data"
 
 export default function LK(props: RouteSectionProps) {
+  const shops = createAsync(() => getShops())
   const location = useLocation()
   const navigate = useNavigate()
   const selectedShopId = () => (props.params.shopId ? +props.params.shopId : undefined)
-  const selectedShop = () => (selectedShopId() ? SHOPS.find(shop => shop.id === selectedShopId()) : undefined)
+  const selectedShop = () => (selectedShopId() ? shops()!.find(shop => shop.id === selectedShopId()) : undefined)
 
   return (
     <MainLayout dontCenter class="gap-4">
@@ -44,13 +46,13 @@ export default function LK(props: RouteSectionProps) {
               if (+id !== selectedShop()?.id) navigate(`/lk/shop/${id.value}`, { replace: true })
             }}>
             <Menu.Trigger class="flex max-w-full flex-row items-center overflow-hidden rounded-full">
-              <img src={selectedShop()?.icon} class="mr-3 h-10 w-10 shrink-0 rounded-full" />
+              <img src={selectedShop()?.picture} class="mr-3 h-10 w-10 shrink-0 rounded-full" />
               <div class="flex shrink flex-col overflow-hidden text-left">
                 <span class="overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-card font-semibold">
                   {selectedShop()?.name}
                 </span>
                 <span class="overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xs">
-                  {selectedShop()?.description}
+                  @{selectedShop()?.link}
                 </span>
               </div>
               <Icon icon={arrow} class="ml-4 h-6 w-6 shrink-0 -rotate-90 bg-text" />

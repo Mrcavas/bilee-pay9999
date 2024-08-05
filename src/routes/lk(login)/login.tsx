@@ -37,13 +37,18 @@ export default function Login() {
           onClick={async () => {
             setLoading(true)
             const res = await tryLogin(email(), password())
-            if (res) navigate("/lk")
-            else {
-              setLoading(false)
-              email.invalidate()
-              password.invalidate()
-              setErrorMessage("Неверная почта или пароль")
-            }
+            setLoading(false)
+            // if (res === true) navigate("/lk")
+            // else {
+            //   setLoading(false)
+            //   if (res === "INVALID_LOGIN_CREDS") {
+            //     email.invalidate()
+            //     password.invalidate()
+            //     setErrorMessage("Неверная почта или пароль")
+            //   } else {
+            //     setErrorMessage("Что-то пошло не так")
+            //   }
+            // }
           }}>
           Войти
         </Button>
