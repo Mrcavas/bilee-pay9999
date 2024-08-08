@@ -1,7 +1,7 @@
 import { Menu } from "@ark-ui/solid"
 import { createAsync, RouteSectionProps, useLocation, useNavigate, useParams } from "@solidjs/router"
 import { createEffect, For, Show } from "solid-js"
-import { createAPIResource, getShops, logout } from "~/api"
+import { createAPIResource, getMe, getShops, logout } from "~/api"
 import { MainLayout } from "~/app"
 import arrow from "~/assets/arrow.svg"
 import check from "~/assets/check.svg"
@@ -12,16 +12,20 @@ import Icon from "~/components/icon"
 
 export default function LK(props: RouteSectionProps) {
   const shops = createAPIResource(getShops)
+  const me = createAPIResource(getMe)
+  const nickname = () => (me() ? me()!.email.substring(0, me()!.email.indexOf("@")) : "")
   const location = useLocation()
+  const inLkIndex = () => location.pathname !== "/lk" && location.pathname !== "/lk/"
   const navigate = useNavigate()
   const selectedShop = () =>
     props.params.shopPath ? shops()?.find(shop => shop.link === props.params.shopPath) : undefined
+
 
   return (
     <MainLayout dontCenter class="gap-4">
       <div class="flex flex-row justify-between rounded-card bg-fg px-4 py-3.5">
         <button class="flex flex-row items-center gap-[12px] rounded-full" onClick={() => navigate("/lk")}>
-          <Show when={location.pathname.includes("shop")}>
+          <Show when={inLkIndex()}>
             <Icon icon={arrow} class="h-6 w-6 shrink-0 bg-text" />
           </Show>
           <div class="flex h-10 shrink flex-row items-center gap-2 pl-0.5 pr-2">
@@ -32,20 +36,22 @@ export default function LK(props: RouteSectionProps) {
           </div>
         </button>
         <Show
-          when={location.pathname.includes("shop")}
+          when={inLkIndex()}
           fallback={
-            <button class="flex flex-row items-center gap-3" onClick={async () => {
-              await logout()
-              navigate("/lk/login")
-            }}>
-              <span class="text-card underline underline-offset-2">ptanyuk01</span>
+            <button
+              class="flex flex-row items-center gap-3"
+              onClick={async () => {
+                await logout()
+                navigate("/lk/login")
+              }}>
+              <span class="text-card underline underline-offset-2">{nickname()}</span>
               <Icon icon={logoutIcon} class="h-6 w-6 bg-text" />
             </button>
           }>
           <Menu.Root
             positioning={{ placement: "bottom-end", offset: { crossAxis: 12 } }}
             onSelect={id => {
-              if (+id !== selectedShop()?.id) navigate(`/lk/shop/${id.value}`, { replace: true })
+              if (+id !== selectedShop()?.id) navigate(`/lk/${id.value}${window.location.hash}`, { replace: true })
             }}>
             <Menu.Trigger class="flex max-w-full flex-row items-center overflow-hidden rounded-full">
               <img src={selectedShop()?.picture} class="mr-3 h-10 w-10 shrink-0 rounded-full" />

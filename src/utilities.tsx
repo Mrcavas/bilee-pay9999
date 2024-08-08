@@ -1,11 +1,10 @@
 import { debounce } from "@solid-primitives/scheduled"
-import { Accessor, createSignal, JSX, Match, Setter, Show, Switch } from "solid-js"
+import { Accessor, createSignal, Match, Setter, Show, Switch } from "solid-js"
 import checkmark_animated from "./assets/checkmark-animated.svg"
-import spinner from "./assets/spinner.svg"
-import Icon from "./components/icon"
 import hidePassword from "./assets/hide-password.svg"
 import showPassword from "./assets/show-password.svg"
-import axios from "axios"
+import spinner from "./assets/spinner.svg"
+import Icon from "./components/icon"
 
 const formatter = new Intl.NumberFormat("ru")
 
@@ -20,7 +19,7 @@ const thousandSeparator = formatNumber(1000).replace(/[0-9]/g, "")
 
 const commaSeparator = formatNumber(0.01).replace(/[0-9]/g, "")
 
-export const createFormatHandler = (input: () => HTMLDivElement) => {
+export const createFormatHandler = (setter: Setter<string>, input: () => HTMLDivElement) => {
   let currentValue: string
 
   return () => {
@@ -60,6 +59,8 @@ export const createFormatHandler = (input: () => HTMLDivElement) => {
 
     setCaretPosition(input(), cursorPosition)
 
+    if (input().innerText === "0") input().innerText = ""
+    setter(removeThousandSeparators(input().innerText))
     currentValue = input().innerText
   }
 }
@@ -91,41 +92,34 @@ function setCaretPosition(elem: HTMLElement, pos: number) {
 }
 
 export function createDebouncedSaver<T>(
+  initial: T,
   predicate: (value: T) => boolean,
   saveCb: (value: T) => Promise<boolean>
-): [Accessor<boolean>, (value: T) => void, JSX.Element] {
+) {
+  const [value, setValue] = createSignal(initial)
   const [isInvalid, setInvalid] = createSignal(false)
-  const [loadingState, setLoadingState] = createSignal<"idle" | "loading" | "finished">("idle")
+  const [loadingState, setLoadingState] = createSignal<"idle" | "loading" | "finished">("idle", { equals: false })
   const triggerValidity = debounce((matches: boolean) => {
     if (!matches) setInvalid(true)
   }, 500)
-  const trigger = debounce((value: T, matches: boolean) => {
+  const trigger = debounce(async (value: T, matches: boolean) => {
     if (matches) {
+      console.log("triggered", value, loadingState())
       setLoadingState("loading")
-      const cb = (attempt: number) => (successful: boolean) => {
-        if (attempt == 5) {
-          setLoadingState("idle")
-          setInvalid(true)
-          return
-        }
-        if (!successful) saveCb(value).then(cb(attempt + 1))
-        else {
-          setLoadingState("finished")
-          setTimeout(() => setLoadingState("idle"), 2000)
-        }
+      const successful = await saveCb(value)
+      console.log("updated:", successful)
+      setLoadingState("finished")
+      if (!successful) {
+        setLoadingState("idle")
+        setInvalid(true)
+      } else {
+        setLoadingState("finished")
+        setTimeout(() => setLoadingState("idle"), 2000)
       }
-      saveCb(value).then(cb(1))
     }
   }, 1500)
 
-  return [
-    isInvalid,
-    (value: T) => {
-      const matches = predicate(value)
-      if (isInvalid() && matches) setInvalid(false)
-      triggerValidity(matches)
-      trigger(value, matches)
-    },
+  const append = (
     <Switch>
       <Match when={loadingState() === "loading"}>
         <Icon icon={spinner} class="h-6 w-6 bg-hint2" />
@@ -133,11 +127,36 @@ export function createDebouncedSaver<T>(
       <Match when={loadingState() === "finished"}>
         <Icon icon={checkmark_animated} class="h-6 w-6 bg-hint2" />
       </Match>
-    </Switch>,
-  ]
+    </Switch>
+  )
+
+  return Object.assign(
+    () => ({
+      value: value(),
+      invalid: isInvalid(),
+      onInput: (value: T) => {
+        setValue(_ => value)
+        const matches = predicate(value)
+        if (isInvalid() && matches) setInvalid(false)
+        triggerValidity(matches)
+        trigger(value, matches)
+      },
+      append,
+    }),
+    {
+      reset: (newInitial: T, newSaveCb: (value: T) => Promise<boolean>) => {
+        setValue(_ => newInitial)
+        setInvalid(false)
+        setLoadingState("idle")
+        trigger.clear()
+        triggerValidity.clear()
+        saveCb = newSaveCb
+      },
+    }
+  )
 }
 
-type Field<T> = Accessor<T> & {
+export type Field<T> = Accessor<T> & {
   set(value: T): void
   onFocusOut: () => void
   invalid: Accessor<boolean>
@@ -165,7 +184,7 @@ export function createValidatedField<T>(predicate: (value: T) => boolean, initia
       setInvalid(!predicate(value()))
     },
     invalid: isInvalid,
-    isValid: () => value() && !isInvalid(),
+    isValid: () => predicate(value()) && !isInvalid(),
     invalidate: () => setInvalid(true),
     reset: () => {
       setValue(_ => initial)
@@ -257,3 +276,11 @@ export const isValidUrl = (value: string) => urlRegex.test(value)
 
 const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]+$/
 export const isValidEmail = (value: string) => emailRegex.test(value)
+
+export function isObjectEmpty(obj: object) {
+  for (var prop in obj) {
+    if (obj.hasOwnProperty(prop)) return false
+  }
+
+  return true
+}

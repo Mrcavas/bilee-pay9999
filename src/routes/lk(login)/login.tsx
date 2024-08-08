@@ -1,5 +1,5 @@
 import { A, useNavigate } from "@solidjs/router"
-import { createSignal, Show } from "solid-js"
+import { Show, createSignal, onMount } from "solid-js"
 import { tryLogin } from "~/api"
 import { MainLayout } from "~/app"
 import Button from "~/components/button"
@@ -13,6 +13,8 @@ export default function Login() {
   const password = createValidatedField<string>(v => !!v, "")
   const [errorMessage, setErrorMessage] = createSignal("")
   const passwordShowerProps = createPasswordShower()
+
+  // onMount(() => window.accessToken && navigate("/lk"))
 
   return (
     <MainLayout noFooter class="max-w-[500px]">

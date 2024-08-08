@@ -37,7 +37,7 @@ export default function LK(props: RouteSectionProps) {
               icon={bot()}
               description={`@${shop.url.substring(13)}`}
               title={shop.name}
-              href={`shop/${shop.link}`}
+              href={shop.link}
               class="flex-grow rounded-card"
             />
           )}
@@ -105,12 +105,14 @@ export default function LK(props: RouteSectionProps) {
                   onClick={async () => {
                     setLoading(true)
                     const resp = await createNewProject(supportUrl()!, path(), token()!)
-                    if (resp.success) navigate(`/lk/shop/${resp.result.link}`)
+                    if (resp.success) navigate(`/lk/${resp.result.link}`)
                     else {
                       setLoading(false)
                       if (resp.error.code === "LINK_EXISTS") {
                         path.invalidate()
                         setErrorMessage("Выбранный путь уже существует")
+                      } else {
+                        setErrorMessage(resp.error.user_message)
                       }
                     }
                   }}>

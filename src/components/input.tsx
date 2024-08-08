@@ -32,7 +32,7 @@ const Input: ParentComponent<Omit<JSX.IntrinsicElements["input"], "onInput"> & I
       for={local.id ?? id}
       class={
         twMerge(
-          "input-container relative flex w-full flex-row justify-between rounded-content px-[21px] pb-2 pt-6 transition-all",
+          "input-container cursor-text relative flex w-full flex-row justify-between rounded-content px-[21px] pb-2 pt-6 transition-all",
           inputProps.disabled && "text-hint1",
           props.class
         ) + (local.invalid ? " bg-error/10 shadow-inside-border shadow-error" : " bg-hint2/15")
@@ -58,7 +58,7 @@ const Input: ParentComponent<Omit<JSX.IntrinsicElements["input"], "onInput"> & I
             </label>
           </>
         }>
-        <div class="textarea-container">
+        <div class="textarea-container" data-replicated-value={props.value}>
           <textarea
             id={local.id ?? id}
             rows={1}
@@ -69,8 +69,9 @@ const Input: ParentComponent<Omit<JSX.IntrinsicElements["input"], "onInput"> & I
             onInput={e => {
               ;(e.target.parentNode as HTMLDivElement).dataset.replicatedValue = e.target.value
               local.onInput?.(e.target.value)
-            }}
-          />
+            }}>
+            {props.value}
+          </textarea>
           <label for={local.id ?? id} class="floating-label">
             {local.name}
           </label>

@@ -32,16 +32,10 @@ export function MainLayout(
   return (
     <>
       <div class={"flex min-h-full flex-col items-center text-base" + (props.dontCenter ? "" : " sm:justify-around")}>
-        <div {...divProps} class={twMerge("flex w-full max-w-[780px] flex-col p-4", props.class)}>
+        <div {...divProps} class={twMerge("flex w-full max-w-[750px] flex-col p-4", props.class)}>
           {props.children}
-          <LegalFooter class="mt-16 p-2 sm:hidden" />
         </div>
       </div>
-      <Show when={!props.noFooter}>
-        <div class="flex flex-col items-center">
-          <LegalFooter class="w-full max-w-[780px] p-[34px] max-sm:hidden" />
-        </div>
-      </Show>
     </>
   )
 }

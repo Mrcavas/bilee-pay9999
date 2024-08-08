@@ -1,6 +1,6 @@
 import { A, useNavigate } from "@solidjs/router"
-import { createEffect, createSignal, Show } from "solid-js"
-import { tryLogin } from "~/api"
+import { createEffect, createSignal, onMount, Show } from "solid-js"
+import { tryLogin, tryRegister } from "~/api"
 import { MainLayout } from "~/app"
 import Button from "~/components/button"
 import Input from "~/components/input"
@@ -31,6 +31,10 @@ export default function Register() {
   const [errorMessage, setErrorMessage] = createSignal("")
   const passwordShowerProps = createPasswordShower()
   const secondaryPasswordShowerProps = createPasswordShower()
+
+  createEffect(() => console.log(secondPassword()))
+
+  // onMount(() => window.accessToken && navigate("/lk"))
 
   return (
     <MainLayout noFooter class="max-w-[500px]">
@@ -66,7 +70,7 @@ export default function Register() {
           invalid={password.invalid() || secondPassword() !== password()}
           value={secondPassword()}
           onInput={setSecondPassword}
-          onPaste={e => e.preventDefault()}
+          // onPaste={e => e.preventDefault()}
           {...secondaryPasswordShowerProps()}
           name="Повторите пароль"
           autocomplete="new-password"
@@ -79,12 +83,16 @@ export default function Register() {
           disabled={!areFieldsFilled(email, password) || password() !== secondPassword()}
           onClick={async () => {
             setLoading(true)
-            const res = await tryLogin(email(), password())
-            if (res) navigate("/lk")
+            const res = await tryRegister(email(), password())
+            if (res === true) navigate("/lk")
             else {
               setLoading(false)
-              email.invalidate()
-              setErrorMessage("Учетная запись с такой почтой уже существует")
+              if (res === "EMAIL_EXISTS") {
+                email.invalidate()
+                setErrorMessage("Учетная запись с такой почтой уже существует")
+              } else {
+                setErrorMessage("Что-то пошло не так")
+              }
             }
           }}>
           Продолжить

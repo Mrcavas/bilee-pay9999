@@ -1,50 +1,63 @@
 import { Dialog, PolymorphicProps, Select } from "@ark-ui/solid"
+import { createAsync } from "@solidjs/router"
 import {
   CollisionDetector,
-  createDroppable,
-  createSortable,
   DragDropProvider,
   DragDropSensors,
   DragEventHandler,
-  Draggable,
   DragOverlay,
+  Draggable,
   Droppable,
-  mostIntersecting,
   SortableProvider,
+  createDroppable,
+  createSortable,
+  mostIntersecting,
   transformStyle,
 } from "@thisbeyond/solid-dnd"
 import {
   Accessor,
-  batch,
-  createEffect,
-  createSignal,
   For,
   Index,
   JSX,
-  onCleanup,
-  onMount,
+  Match,
   Setter,
   Show,
+  Switch,
+  batch,
+  createEffect,
+  createSignal,
+  onCleanup,
+  onMount,
 } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Portal } from "solid-js/web"
+import {
+  createPaymentMethod,
+  deletePaymentMethod,
+  getIcons,
+  getPaymentMethods,
+  getPaymentSystems,
+  updateMethodPositions,
+  updatePaymentMethod,
+} from "~/api"
 import add from "~/assets/add.svg"
 import arrow from "~/assets/arrow.svg"
 import check from "~/assets/check.svg"
 import close from "~/assets/close.svg"
 import drag from "~/assets/drag.svg"
 import pause from "~/assets/pause.svg"
+import play from "~/assets/play.svg"
 import rearrange from "~/assets/rearrange.svg"
 import sbpImg from "~/assets/sbp.svg"
 import selectIcon from "~/assets/select-icon.svg"
+import spinner from "~/assets/spinner.svg"
 import trash from "~/assets/trash.svg"
 import Button from "~/components/button"
 import { GoCardBtn, GoCardInsides } from "~/components/gocard"
 import Icon from "~/components/icon"
 import Input from "~/components/input"
 import Selector from "~/components/selector"
-import { ICONS } from "~/mocked-data"
-import { mainScrollable } from "~/utilities"
+import { Field, areFieldsFilled, createValidatedField, mainScrollable, resetFields } from "~/utilities"
 
 const sbpIcon: Icon = {
   id: 1,
@@ -247,92 +260,32 @@ function MethodsEdit({
   )
 }
 
-export default function MethodsTab() {
+export default function MethodsTab(props: { project: Project }) {
+  let lastProjectId = props.project.id
   const [isEditing, setIsEditing] = createSignal(false)
-  const [methods, setMethods] = createSignal<PaymentMethod[]>([
-    {
-      id: 3,
-      name: "Карта 3",
-      icon: sbpIcon,
-      position_index: 3,
-      primary: true,
-      min_amount: 10,
-      max_amount: 100,
-      commission: 15,
-      min_commission_amount: 10,
-    },
-    {
-      id: 2,
-      name: "Карта 2",
-      icon: sbpIcon,
-      position_index: 2,
-      primary: true,
-      min_amount: 10,
-      max_amount: 100,
-      commission: 15,
-      min_commission_amount: 10,
-    },
-    {
-      id: 1,
-      name: "Карта asdasd",
-      icon: sbpIcon,
-      position_index: 1,
-      primary: true,
-      min_amount: 10,
-      max_amount: 100,
-      commission: 15,
-      min_commission_amount: 10,
-    },
-    {
-      id: 4,
-      name: "Карта 4",
-      icon: sbpIcon,
-      position_index: 4,
-      primary: false,
-      min_amount: 10,
-      max_amount: 100,
-      commission: 15,
-      min_commission_amount: 10,
-    },
-    {
-      id: 5,
-      name: "Карта 5",
-      icon: sbpIcon,
-      position_index: 5,
-      primary: false,
-      min_amount: 10,
-      max_amount: 100,
-      commission: 15,
-      min_commission_amount: 10,
-    },
-    {
-      id: 6,
-      name: "Карта 6",
-      icon: sbpIcon,
-      position_index: 6,
-      primary: false,
-      min_amount: 10,
-      max_amount: 100,
-      commission: 15,
-      min_commission_amount: 10,
-    },
-    {
-      id: 7,
-      name: "Карта 7",
-      icon: sbpIcon,
-      position_index: 7,
-      primary: false,
-      min_amount: 10,
-      max_amount: 100,
-      commission: 15,
-      min_commission_amount: 10,
-    },
-  ])
+  const [methods, setMethods] = createSignal<PaymentMethod[]>([])
   const sortedMethods = () => methods().sort((a, b) => a.position_index - b.position_index)
   const [saver, setSaver] = createSignal<(cb: (primaryIds: number[], secondaryIds: number[]) => void) => void>(cb =>
     cb([], [])
   )
   const [editorRef, setEditorRef] = createSignal<HTMLDivElement>()
+  const [isLoading, setLoading] = createSignal(false)
+  const icons = createAsync(() => getIcons(), { initialValue: [] })
+  const paymentSystems = createAsync(() => getPaymentSystems(), { initialValue: [] })
+  const fetchedMethods = createAsync(() => getPaymentMethods(props.project.id))
+
+  createEffect(() => {
+    const _methods = fetchedMethods()
+    if (_methods === undefined) return
+    setLoading(false)
+    setMethods(_methods)
+  })
+
+  createEffect(() => {
+    if (props.project.id === lastProjectId) return
+    setLoading(true)
+    lastProjectId = props.project.id
+  })
 
   return (
     <>
@@ -342,77 +295,101 @@ export default function MethodsTab() {
       </div>
 
       <Show
-        when={isEditing()}
+        when={!isLoading() || !icons() || !paymentSystems()}
         fallback={
-          <button
-            class={"mb-3 flex flex-row items-center gap-2.5 px-2 " + (methods().length <= 1 ? "text-hint2" : "")}
-            disabled={methods().length <= 1}
-            onClick={() => {
-              setIsEditing(true)
-              batch(() => editorRef()?.scrollIntoView({ behavior: "smooth" }))
-            }}>
-            <Icon icon={rearrange} class={"h-6 w-6 " + (methods().length <= 1 ? "bg-hint2" : "bg-text")} />
-            <div class="font-semibold">Изменить порядок</div>
-          </button>
-        }>
-        <button
-          class="mb-3 flex flex-row gap-2 rounded-content bg-primary p-2 pr-3 text-text-on-primary"
-          onClick={() => {
-            saver()!((primaryIds, secondaryIds) => {
-              const methods = sortedMethods()
-              for (let i = 0; i < primaryIds.length; i++) {
-                const method = methods.find(method => method.id === primaryIds[i])!
-                method.position_index = i + 1
-                method.primary = true
-              }
-              for (let i = 0; i < secondaryIds.length; i++) {
-                const method = methods.find(method => method.id === secondaryIds[i])!
-                method.position_index = i + 1 + primaryIds.length
-                method.primary = false
-              }
-              setMethods([...methods])
-            })
-            setIsEditing(false)
-            batch(() => mainScrollable().scrollTo({ behavior: "smooth", top: 0 }))
-          }}>
-          <Icon icon={check} class="h-6 w-6 bg-text-on-primary" />
-          <div class="font-semibold">Сохранить</div>
-        </button>
-      </Show>
-
-      <Show
-        when={isEditing()}
-        fallback={
-          <div class="flex flex-wrap gap-3">
-            <Index each={sortedMethods()}>
-              {item => (
-                <EditMethodDialog
-                  method={item()}
-                  methods={methods}
-                  setMethods={setMethods}
-                  asChild={props => <MethodCard method={item()} {...props} />}
-                />
-              )}
-            </Index>
-            <Show when={methods().length < 8}>
-              <EditMethodDialog
-                new
-                methods={methods}
-                setMethods={setMethods}
-                asChild={props => (
-                  <GoCardBtn
-                    icon={<Icon icon={add} class="h-6 w-6 bg-text-on-primary" />}
-                    title="Добавить"
-                    class="flex-grow rounded-content bg-primary text-text-on-primary"
-                    noArrow
-                    {...props}
-                  />
-                )}
-              />
-            </Show>
+          <div class="grid place-items-center p-3">
+            <Icon icon={spinner} class="h-8 w-8 bg-text" />
           </div>
         }>
-        <MethodsEdit ref={setEditorRef} sortedMethods={sortedMethods} setSaver={setSaver} />
+        <Show
+          when={isEditing()}
+          fallback={
+            <button
+              class={"mb-3 flex flex-row items-center gap-1.5 px-2 " + (methods().length <= 1 ? "text-hint2" : "")}
+              disabled={methods().length <= 1}
+              onClick={() => {
+                setIsEditing(true)
+                batch(() => editorRef()?.scrollIntoView({ behavior: "smooth" }))
+              }}>
+              <Icon icon={rearrange} class={"h-6 w-6 " + (methods().length <= 1 ? "bg-hint2" : "bg-text")} />
+              <div class="font-semibold">Изменить порядок</div>
+            </button>
+          }>
+          <button
+            class="mb-3 flex flex-row gap-2 rounded-content bg-primary p-2 pr-3 text-text-on-primary"
+            onClick={() => {
+              saver()!(async (primaryIds, secondaryIds) => {
+                const methods = sortedMethods()
+                for (let i = 0; i < primaryIds.length; i++) {
+                  const method = methods.find(method => method.id === primaryIds[i])!
+                  method.position_index = i + 1
+                  method.primary = true
+                }
+                for (let i = 0; i < secondaryIds.length; i++) {
+                  const method = methods.find(method => method.id === secondaryIds[i])!
+                  method.position_index = i + 1 + primaryIds.length
+                  method.primary = false
+                }
+                batch(() => mainScrollable().scrollTo({ behavior: "smooth", top: 0 }))
+                setLoading(true)
+                await updateMethodPositions(
+                  props.project.id,
+                  methods.map(m => ({
+                    id: m.id,
+                    position_index: m.position_index,
+                    primary: m.primary,
+                  }))
+                )
+                setMethods([...methods])
+                setIsEditing(false)
+                setLoading(false)
+              })
+            }}>
+            <Icon icon={check} class="h-6 w-6 bg-text-on-primary" />
+            <div class="font-semibold">Сохранить</div>
+          </button>
+        </Show>
+
+        <Show
+          when={isEditing()}
+          fallback={
+            <div class="flex flex-wrap gap-3">
+              <Index each={sortedMethods()}>
+                {item => (
+                  <EditMethodDialog
+                    project={props.project}
+                    icons={icons()}
+                    paymentSystems={paymentSystems()}
+                    method={item()}
+                    methods={methods}
+                    setMethods={setMethods}
+                    asChild={props => <MethodCard method={item()} {...props} />}
+                  />
+                )}
+              </Index>
+              <Show when={methods().length < 8}>
+                <EditMethodDialog
+                  project={props.project}
+                  icons={icons()}
+                  paymentSystems={paymentSystems()}
+                  new
+                  methods={methods}
+                  setMethods={setMethods}
+                  asChild={props => (
+                    <GoCardBtn
+                      icon={<Icon icon={add} class="h-6 w-6 bg-text-on-primary" />}
+                      title="Добавить"
+                      class="flex-grow rounded-content bg-primary text-text-on-primary"
+                      noArrow
+                      {...props}
+                    />
+                  )}
+                />
+              </Show>
+            </div>
+          }>
+          <MethodsEdit ref={setEditorRef} sortedMethods={sortedMethods} setSaver={setSaver} />
+        </Show>
       </Show>
     </>
   )
@@ -422,6 +399,9 @@ function EditMethodDialog(
   props: PolymorphicProps<"button"> & {
     methods: Accessor<PaymentMethod[]>
     setMethods: Setter<PaymentMethod[]>
+    icons: Icon[]
+    project: Project
+    paymentSystems: PaymentSystem[]
   } & (
       | {
           method: PaymentMethod
@@ -433,12 +413,33 @@ function EditMethodDialog(
         }
     )
 ) {
+  console.log(props.icons, props.paymentSystems)
   const [isOpen, setIsOpen] = createSignal(false)
-  const [name, setName] = createSignal(props.method?.name ?? "")
-  const [minAmount, setMinAmount] = createSignal(props.method?.min_amount ?? "")
-  const [maxAmount, setMaxAmount] = createSignal(props.method?.max_amount ?? "")
-  const [commission, setCommission] = createSignal(props.method?.commission ?? "")
-  const [minCommissionAmount, setMinCommissionAmount] = createSignal(props.method?.min_commission_amount ?? "")
+  const name = createValidatedField(v => !!v, props.method?.name ?? "")
+  const inRange = (v: number) => v >= 0 && v <= 1000000
+  const min_amount: Field<string> = createValidatedField(
+    v => !!v && inRange(+v),
+    props.method?.min_amount.toString() ?? ""
+  )
+  const max_amount: Field<string> = createValidatedField(
+    v => !!v && inRange(+v),
+    props.method?.max_amount.toString() ?? ""
+  )
+  const commission = createValidatedField(v => !!v && +v >= 0 && +v < 100, props.method?.commission.toString() ?? "")
+  const min_commission_amount = createValidatedField(
+    v => !!v && inRange(+v),
+    props.method?.min_commission_amount.toString() ?? ""
+  )
+  const [icon, setIcon] = createSignal(props.method?.icon)
+  const findPaymentSystem = (id: number) => props.paymentSystems.find(s => s.id === id)
+  const [paymentSystem, setPaymentSystem] = createSignal(
+    props.method?.payment_system_id ? findPaymentSystem(props.method.payment_system_id) : undefined
+  )
+  const [isLoading, setLoading] = createSignal(false)
+  const [isDeleteLoading, setDeleteLoading] = createSignal(false)
+  const [errorMessage, setErrorMessage] = createSignal("")
+  const [enabled, setEnabled] = createSignal(props.method?.enabled ?? true)
+  const [paramsData, setParamsData] = createSignal(props.method?.params ?? [])
 
   return (
     <Dialog.Root
@@ -446,11 +447,10 @@ function EditMethodDialog(
       onOpenChange={({ open }) => setIsOpen(open)}
       open={isOpen()}
       onExitComplete={() => {
-        setName(props.method?.name ?? "")
-        setMinAmount(props.method?.min_amount ?? "")
-        setMaxAmount(props.method?.max_amount ?? "")
-        setCommission(props.method?.commission ?? "")
-        setMinCommissionAmount(props.method?.min_commission_amount ?? "")
+        resetFields(name, min_amount, max_amount, commission, min_commission_amount)
+        setLoading(false)
+        setDeleteLoading(false)
+        setIcon(props.method?.icon)
       }}>
       <Dialog.Trigger asChild={props.asChild} />
       <Portal>
@@ -465,12 +465,18 @@ function EditMethodDialog(
                 <Icon icon={close} class="h-6 w-6 bg-text" />
               </Dialog.CloseTrigger>
             </div>
+            <Show when={errorMessage()}>
+              <div class="-mt-2 mb-2 w-full text-center text-sm text-error">{errorMessage()}</div>
+            </Show>
 
             <Show when={!props.new}>
               <div class="flex flex-row gap-2.5">
-                <button
-                  class="flex w-full flex-row items-center justify-center gap-2.5 rounded-content bg-error py-4 font-semibold text-text-on-primary"
-                  onClick={() => {
+                <Button
+                  class="gap-2.5 bg-error"
+                  loading={isDeleteLoading()}
+                  onClick={async () => {
+                    setDeleteLoading(true)
+                    await deletePaymentMethod(props.project.id, props.method!.id)
                     const newMethods = props.methods().reduce((filtered, method) => {
                       if (method.id === props.method!.id) return filtered
                       else
@@ -491,10 +497,21 @@ function EditMethodDialog(
                   }}>
                   <Icon icon={trash} class="h-6 w-6 bg-text-on-primary" />
                   Удалить
-                </button>
-                <button class="flex w-full flex-row items-center justify-center gap-2.5 rounded-content py-4 font-semibold shadow-inside-border shadow-text">
-                  <Icon icon={pause} class="h-6 w-6 bg-text" />
-                  <div class="">Скрыть</div>
+                </Button>
+                <button
+                  class="flex w-full flex-row items-center justify-center gap-2.5 rounded-content py-4 font-semibold shadow-inside-border shadow-text"
+                  onClick={() => setEnabled(v => !v)}>
+                  <Show
+                    when={enabled()}
+                    fallback={
+                      <>
+                        <Icon icon={play} class="h-6 w-6 bg-text" />
+                        Показать
+                      </>
+                    }>
+                    <Icon icon={pause} class="h-6 w-6 bg-text" />
+                    Скрыть
+                  </Show>
                 </button>
               </div>
 
@@ -504,90 +521,118 @@ function EditMethodDialog(
             <Selector
               class="mt-2"
               name="Платежная система"
-              items={[
-                {
-                  value: "1",
-                  label: "хуйня",
-                },
-                {
-                  value: "2",
-                  label: "ещё хуйня",
-                },
-                {
-                  value: "3",
-                  label: "все хуйня",
-                },
-              ]}
+              onSelect={v => setPaymentSystem(findPaymentSystem(+v))}
+              items={props.paymentSystems.map(system => ({
+                value: system.id.toString(),
+                label: system.name,
+              }))}
             />
 
             <div class="mt-2 grid grid-cols-[auto_1fr] gap-2">
-              <IconSelector />
-              <Input invalid={name().length < 10} type="text" name="Название" value={name()} onInput={setName} />
+              <IconSelector icons={props.icons} onSelect={setIcon} />
+              <Input {...name.inputProps()} type="text" name="Название" />
             </div>
 
             <div class="mt-2 flex flex-row gap-2">
-              <Input type="number" name="Мин. сумма" value={minAmount()} onInput={setMinAmount} class="" />
-              <Input type="number" name="Макс. сумма" value={maxAmount()} onInput={setMaxAmount} class="" />
+              <Input
+                {...min_amount.inputProps()}
+                type="number"
+                name="Мин. сумма"
+                onInput={v => {
+                  min_amount.set(v)
+                  if (max_amount.invalid()) max_amount.set(max_amount())
+                }}
+              />
+              <Input
+                {...max_amount.inputProps()}
+                type="number"
+                name="Макс. сумма"
+                onInput={v => {
+                  max_amount.set(v)
+                  if (min_amount.invalid()) min_amount.set(min_amount())
+                }}
+              />
             </div>
 
-            <Input type="number" name="Комиссия, %" value={commission()} onInput={setCommission} class="mt-2" />
-            <Input
-              type="number"
-              name="Мин. комиссия, руб."
-              value={minCommissionAmount()}
-              onInput={setMinCommissionAmount}
-              class="mt-2"
-            />
+            <Input {...commission.inputProps()} type="number" name="Комиссия, %" class="mt-2" />
+            <Input {...min_commission_amount.inputProps()} type="number" name="Мин. комиссия, руб." class="mt-2" />
+
+            <Show when={paymentSystem()?.method_params && paymentSystem()!.method_params.length > 0}>
+              <div class="mt-4 px-1 text-card font-semibold">Тех. параметры</div>
+              <div сlass="flex flex-col gap-2">
+                <For each={paymentSystem()?.method_params}>
+                  {param => <MethodParam param={param} paramsData={paramsData} setParamsData={setParamsData} />}
+                </For>
+              </div>
+            </Show>
 
             <Button
               class="mt-4"
-              onClick={() => {
+              loading={isLoading()}
+              disabled={!areFieldsFilled(name, min_amount, max_amount, commission, min_commission_amount) || !icon()}
+              onClick={async () => {
+                if (min_amount() > max_amount()) {
+                  min_amount.invalidate()
+                  max_amount.invalidate()
+                  return
+                }
+                setLoading(true)
                 if (!props.new) {
+                  const resp = await updatePaymentMethod(props.project.id, props.method!.id, {
+                    name: name(),
+                    min_amount: +min_amount(),
+                    max_amount: +max_amount(),
+                    commission: +commission(),
+                    min_commission_amount: +min_commission_amount(),
+                    icon_id: icon()!.id,
+                    payment_system_id: paymentSystem()!.id,
+                    params: paramsData(),
+                  })
+                  if (!resp.success) {
+                    setErrorMessage(resp.error.user_message)
+                    setLoading(false)
+                    return
+                  }
+
                   props.setMethods(
                     props.methods().map(m => {
                       if (m.id !== props.method!.id) return m
                       return {
                         ...m,
                         name: name(),
-                        min_amount: +minAmount(),
-                        max_amount: +maxAmount(),
+                        min_amount: +min_amount(),
+                        max_amount: +max_amount(),
                         commission: +commission(),
-                        min_commission_amount: +minCommissionAmount(),
+                        min_commission_amount: +min_commission_amount(),
+                        icon_id: icon()!.id,
+                        icon: icon()!,
+                        payment_system_id: paymentSystem()!.id,
+                        params: paramsData(),
                       }
                     })
                   )
-                } else if (props.methods().length > 0) {
-                  props.setMethods([
-                    ...props.methods().map(m => ({
-                      ...m,
-                      position_index: m.position_index + 1,
-                    })),
-                    {
-                      id: Math.max(...props.methods().map(m => m.id)) + 1,
-                      name: name(),
-                      min_amount: +minAmount(),
-                      max_amount: +maxAmount(),
-                      commission: +commission(),
-                      min_commission_amount: +minCommissionAmount(),
-                      primary: true,
-                      position_index: 1,
-                      icon: sbpIcon,
-                    },
-                  ])
                 } else {
-                  props.setMethods([
-                    {
-                      id: 0,
-                      name: name(),
-                      min_amount: +minAmount(),
-                      max_amount: +maxAmount(),
-                      commission: +commission(),
-                      min_commission_amount: +minCommissionAmount(),
-                      primary: true,
-                      position_index: 1,
-                      icon: sbpIcon,
-                    },
-                  ])
+                  const resp = await createPaymentMethod(props.project.id, {
+                    name: name(),
+                    min_amount: +min_amount(),
+                    max_amount: +max_amount(),
+                    commission: +commission(),
+                    min_commission_amount: +min_commission_amount(),
+                    icon_id: icon()!.id,
+                    payment_system_id: paymentSystem()!.id,
+                    params: paramsData(),
+                  })
+                  if (!resp.success) {
+                    setErrorMessage(resp.error.user_message)
+                    setLoading(false)
+                    return
+                  }
+
+                  if (props.methods().length > 0) {
+                    props.setMethods([...props.methods(), resp.result])
+                  } else {
+                    props.setMethods([resp.result])
+                  }
                 }
                 setIsOpen(false)
               }}>
@@ -601,6 +646,7 @@ function EditMethodDialog(
 }
 
 type IconSelectorProps = {
+  icons: Icon[]
   defaultId?: number
   onSelect?: (icon: Icon) => void
 }
@@ -608,17 +654,16 @@ type IconSelectorProps = {
 function IconSelector(props: IconSelectorProps) {
   const [isOpen, setOpen] = createSignal(false)
   const [selectedIcon, setSelectedIcon] = createSignal(
-    props.defaultId ? ICONS.find(icon => icon.id === props.defaultId)! : undefined
+    props.defaultId ? props.icons.find(icon => icon.id === props.defaultId)! : undefined
   )
 
   return (
     <Select.Root
       open={isOpen()}
       onOpenChange={({ open }) => setOpen(open)}
-      items={ICONS}
-      // positioning={{ sameWidth: true }}
+      items={props.icons}
       onValueChange={v => {
-        const icon = ICONS.find(icon => icon.id === +v.value[0])!
+        const icon = props.icons.find(icon => icon.id === +v.value[0])!
         setSelectedIcon(icon)
         props.onSelect?.(icon)
       }}
@@ -641,7 +686,7 @@ function IconSelector(props: IconSelectorProps) {
       </Select.Control>
       <Select.Positioner>
         <Select.Content class="z-10 grid grid-cols-4 overflow-hidden rounded-content bg-fg p-3 shadow-menu focus:outline-none">
-          <Index each={ICONS}>
+          <Index each={props.icons}>
             {item => (
               <Select.Item item={item()} class="cursor-pointer rounded-[8px] p-2 data-[highlighted]:bg-text/10">
                 <img src={item().url} alt="" class="aspect-square h-full" />
@@ -651,5 +696,25 @@ function IconSelector(props: IconSelectorProps) {
         </Select.Content>
       </Select.Positioner>
     </Select.Root>
+  )
+}
+
+function MethodParam({
+  param,
+  paramsData,
+  setParamsData,
+}: {
+  param: MethodParam
+  paramsData: Accessor<ParamData[]>
+  setParamsData: Setter<ParamData[]>
+}) {
+  return (
+    <Switch>
+      <Match when={param.type === "boolean"}>checkmark</Match>
+      <Match when={param.type === "enum"}>selector</Match>
+      <Match when={param.type === "float"}>input</Match>
+      <Match when={param.type === "int"}>input</Match>
+      <Match when={param.type === "string"}>input</Match>
+    </Switch>
   )
 }
