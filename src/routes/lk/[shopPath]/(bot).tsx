@@ -6,10 +6,12 @@ import { deleteProject } from "~/api"
 import close from "~/assets/close.svg"
 import infoCircle from "~/assets/info-circle.svg"
 import trash from "~/assets/trash.svg"
+import url from "~/assets/url.svg"
 import Button from "~/components/button"
 import Icon from "~/components/icon"
 import Input from "~/components/input"
 import { createValidatedField } from "~/utilities"
+
 export default function BotTab(props: { project: Project }) {
   const [isOpen, setOpen] = createSignal(false)
   const [isLoading, setLoading] = createSignal(false)
@@ -24,7 +26,7 @@ export default function BotTab(props: { project: Project }) {
         <p>Изменить токен нельзя. Чтобы использовать другой токен - создайте новый проект</p>
       </div>
       <div class="mt-4 flex flex-row flex-wrap gap-2.5">
-        <div class="flex grow flex-row items-center justify-between rounded-content bg-success/30 py-2 pl-3 pr-5">
+        <a href={`https://mrcavas.bilee.ru/${props.project.link}`} class="flex grow flex-row items-center justify-between rounded-content bg-success/30 py-2 pl-3 pr-5">
           <div class="flex flex-row items-center gap-2">
             <img src={props.project.picture} class="h-10 w-10 rounded-full" />
             <div class="flex flex-col">
@@ -32,7 +34,8 @@ export default function BotTab(props: { project: Project }) {
               <span class="text-xs">@{props.project.url.substring(13)}</span>
             </div>
           </div>
-        </div>
+          <Icon icon={url} class="h-6 w-6 bg-text" />
+        </a>
       </div>
       <Dialog.Root
         closeOnInteractOutside={false}

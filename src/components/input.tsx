@@ -10,7 +10,7 @@ type InputProps = {
   multiline?: boolean
   description?: string
   invalidDescription?: string
-  onInput?: (input: string) => void
+  onInput?: (input: string, event: InputEvent) => void
 }
 
 const Input: ParentComponent<Omit<JSX.IntrinsicElements["input"], "onInput"> & InputProps> = props => {
@@ -50,7 +50,7 @@ const Input: ParentComponent<Omit<JSX.IntrinsicElements["input"], "onInput"> & I
               title=""
               placeholder={" "}
               onInput={e => {
-                local.onInput?.(e.target.value)
+                local.onInput?.(e.target.value, e)
               }}
             />
             <label for={local.id ?? id} class="floating-label">
@@ -68,7 +68,7 @@ const Input: ParentComponent<Omit<JSX.IntrinsicElements["input"], "onInput"> & I
             placeholder={" "}
             onInput={e => {
               ;(e.target.parentNode as HTMLDivElement).dataset.replicatedValue = e.target.value
-              local.onInput?.(e.target.value)
+              local.onInput?.(e.target.value, e)
             }}>
             {props.value}
           </textarea>

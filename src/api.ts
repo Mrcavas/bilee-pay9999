@@ -73,14 +73,14 @@ export const getMe = cache(async () => {
   const aT = await getAccessToken()
   const resp = await axios.get<ApiResponse<{ result: { email: string } }>>("/user/me", apiConfig(aT))
   if (resp.data.success) return resp.data.result
-  throw new Error("getMe failed")
+  throw new Error(`getMe failed with status code ${resp.status}`)
 }, "me")
 
 export const getShops = cache(async () => {
   const aT = await getAccessToken()
   const resp = await axios.get<ApiResponse<{ result: Project[] }>>("/project/my", apiConfig(aT))
   if (resp.data.success) return resp.data.result
-  throw new Error("getShops failed")
+  throw new Error(`getShops failed with status code ${resp.status}`)
 }, "shops")
 
 let icons: Icon[] | undefined
@@ -92,7 +92,7 @@ export const getIcons = cache(async () => {
     icons = resp.data.result
     return resp.data.result
   }
-  throw new Error("getIcons failed")
+  throw new Error(`getIcons failed with status code ${resp.status}`)
 }, "icons")
 
 let paymentSystems: PaymentSystem[] | undefined
@@ -104,7 +104,7 @@ export const getPaymentSystems = cache(async () => {
     paymentSystems = resp.data.result
     return resp.data.result
   }
-  throw new Error("getPaymentSystems failed")
+  throw new Error(`getPaymentSystems failed with status code ${resp.status}`)
 }, "payment-systems")
 
 export async function createApiKey(projectId: number, name: string) {
@@ -114,7 +114,7 @@ export async function createApiKey(projectId: number, name: string) {
     apiConfig(await getAccessToken())
   )
   if (resp.data.success) return resp.data.result
-  throw new Error("createApiKey failed")
+  throw new Error(`createApiKey failed with status code ${resp.status}`)
 }
 
 export async function refreshApiKey(projectId: number) {
@@ -124,13 +124,13 @@ export async function refreshApiKey(projectId: number) {
     apiConfig(await getAccessToken())
   )
   if (resp.data.success) return resp.data.result
-  throw new Error("refreshApiKey failed")
+  throw new Error(`refreshApiKey failed with status code ${resp.status}`)
 }
 
 export async function deleteApiKey(projectId: number) {
   const resp = await axios.delete<ApiResponse<{}>>(`/project/${projectId}/token`, apiConfig(await getAccessToken()))
   if (resp.data.success) return
-  throw new Error("deleteApiKey failed")
+  throw new Error(`deleteApiKey failed with status code ${resp.status}`)
 }
 
 export const getApiKey = async (projectId: number): Promise<{} | ApiKey> => {
@@ -160,7 +160,7 @@ export async function deleteProject(projectId: number) {
   const resp = await axios.delete<ApiResponse<{}>>(`/project/${projectId}`, apiConfig(await getAccessToken()))
   revalidate("shops")
   if (resp.data.success) return
-  throw new Error("deleteProject failed")
+  throw new Error(`deleteProject failed with status code ${resp.status}`)
 }
 
 export const createAPIResource = <T>(fn: () => Promise<T>) =>
@@ -213,7 +213,7 @@ export async function deletePaymentMethod(projectId: number, methodId: number) {
     apiConfig(await getAccessToken())
   )
   if (resp.data.success) return
-  throw new Error("deletePaymentMethod failed")
+  throw new Error(`deletePaymentMethod failed with status code ${resp.status}`)
 }
 
 export async function createPaymentMethod(projectId: number, method: PaymentMethodCreate) {
@@ -244,26 +244,50 @@ export async function updateMethodPositions(
     apiConfig(await getAccessToken())
   )
   if (resp.data.success) return
-  throw new Error("updateMethodPositions failed")
+  throw new Error(`updateMethodPositions failed with status code ${resp.status}`)
 }
 
-export const getProjectInfo = cache(async (projectLink: string) => {
+export const getProjectInfo = cache(async (projectLink: string, tgId?: string) => {
   const resp = await axios.get<ApiResponse<{ result: Project }>>(`/project/info/ulk/${projectLink}`, baseConfig)
   if (resp.data.success) {
-    const resp2 = await axios.get<ApiResponse<{ result: PaymentMethod[] }>>(
+    const methodsReq = axios.get<ApiResponse<{ result: PaymentMethod[] }>>(
       `/payment-method/${resp.data.result.id}/available`,
       baseConfig
     )
+    const tgUserReq = getTelegramUser(resp.data.result.id, tgId)
+
+    const [resp2, tgUser] = await Promise.all([methodsReq, tgUserReq])
+
     if (resp2.data.success)
       return {
         success: true,
         ...resp.data.result,
         methods: resp2.data.result,
+        tgUser,
       } as Project & {
-        success: true, 
+        success: true
         methods: PaymentMethod[]
+        tgUser: TelegramUser | {}
       }
     return resp2.data
   }
   return resp.data
 }, "project-info")
+
+export const getTelegramUser = cache(async (projectId?: number, tgId?: string) => {
+  if (!projectId || !tgId) return {}
+  const resp = await axios.get<ApiResponse<{ result: TelegramUser }>>(`/telegram/${projectId}/user/${tgId}`, baseConfig)
+  if (resp.data.success) return resp.data.result
+  return {
+    invalid: true,
+  }
+}, "tg-user")
+
+export async function getTransaction(projectId: number, data: TransactionData) {
+  const resp = await axios.post<ApiResponse<{ result: TransactionResponse }>>(
+    `/transaction/${projectId}/init`,
+    data,
+    baseConfig
+  )
+  return resp.data
+}

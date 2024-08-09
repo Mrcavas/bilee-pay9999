@@ -13,7 +13,13 @@ import { GoCardA, GoCardBtn } from "~/components/gocard"
 import Icon from "~/components/icon"
 import InfoTooltip from "~/components/info-tooltip"
 import Input from "~/components/input"
-import { areFieldsFilled, createValidatedField, isValidPath, isValidUrl, resetFields } from "~/utilities"
+import createErrorToaster, {
+  areFieldsFilled,
+  createValidatedField,
+  isValidPath,
+  isValidUrl,
+  resetFields,
+} from "~/utilities"
 
 export default function LK(props: RouteSectionProps) {
   const bot = () => <Icon icon={botImg} class="h-6 w-6 bg-text" />
@@ -24,11 +30,12 @@ export default function LK(props: RouteSectionProps) {
   const path = createValidatedField<string>(isValidPath, "")
   const token = createValidatedField<string>(s => !!s, "")
   const [isLoading, setLoading] = createSignal(false)
-  const [errorMessage, setErrorMessage] = createSignal<string>()
   const navigate = useNavigate()
+  const [displayError, toaster] = createErrorToaster()
 
   return (
     <div>
+      {toaster()}
       <div class="mb-3 mt-3 px-4">Выберите магазин</div>
       <div class="flex flex-wrap gap-3">
         <For each={shops()}>
@@ -47,7 +54,6 @@ export default function LK(props: RouteSectionProps) {
           onOpenChange={({ open }) => setIsOpen(open)}
           open={isOpen()}
           onExitComplete={() => {
-            setErrorMessage()
             resetFields(supportUrl, path, token)
           }}>
           <Dialog.Trigger
@@ -71,9 +77,6 @@ export default function LK(props: RouteSectionProps) {
                     <Icon icon={close} class="h-6 w-6 bg-text" />
                   </Dialog.CloseTrigger>
                 </div>
-                <Show when={errorMessage()}>
-                  <div class="-mt-2 w-full text-center text-sm text-error">{errorMessage()}</div>
-                </Show>
 
                 <Input {...supportUrl.inputProps()} type="text" name="Ссылка на поддержку" class="mt-2" />
 
@@ -110,9 +113,9 @@ export default function LK(props: RouteSectionProps) {
                       setLoading(false)
                       if (resp.error.code === "LINK_EXISTS") {
                         path.invalidate()
-                        setErrorMessage("Выбранный путь уже существует")
+                        displayError("Выбранный путь уже существует")
                       } else {
-                        setErrorMessage(resp.error.user_message)
+                        displayError(resp.error.user_message)
                       }
                     }
                   }}>

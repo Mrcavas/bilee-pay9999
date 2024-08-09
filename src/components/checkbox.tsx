@@ -1,13 +1,14 @@
 import { Checkbox } from "@ark-ui/solid"
-import { MainLayout } from "~/app"
 import Icon from "~/components/icon"
-import Input from "~/components/input"
 import checkboxBg from "~/assets/checkbox-bg.svg"
 import checkboxMarked from "~/assets/checkbox-marked.svg"
 
-function CheckBox() {
+export function CheckBox(props: { name: string; checked?: boolean; onCheck?: (val: boolean) => void }) {
   return (
-    <Checkbox.Root class="flex flex-row items-center gap-2" onCheckedChange={console.log}>
+    <Checkbox.Root
+      checked={props.checked}
+      class="flex flex-row items-center gap-2"
+      onCheckedChange={({ checked }) => props.onCheck?.(checked as boolean)}>
       <Checkbox.Control class="group relative">
         <Icon
           icon={checkboxBg}
@@ -23,17 +24,8 @@ function CheckBox() {
           )}
         />
       </Checkbox.Control>
-      <Checkbox.Label>Checkbox</Checkbox.Label>
+      <Checkbox.Label>{props.name}</Checkbox.Label>
       <Checkbox.HiddenInput />
     </Checkbox.Root>
-  )
-}
-
-export default function Index() {
-  return (
-    <MainLayout>
-      <CheckBox />
-      <Input name="adadsad" type="text" class="mt-2 w-96" />
-    </MainLayout>
   )
 }

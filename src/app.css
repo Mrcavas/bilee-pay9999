@@ -132,6 +132,14 @@ p + p {
   animation: select-bottom-slide-out 150ms cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
+[data-scope="toast"][data-part="root"][data-state="open"] {
+  animation: toast-bottom-slide-in 300ms cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+[data-scope="toast"][data-part="root"][data-state="closed"] {
+  animation: toast-bottom-slide-out 150ms cubic-bezier(0.3, 0, 0.8, 0.15);
+}
+
 [data-scope="select"][data-placement="top-start"][data-part="content"][data-state="open"] {
   animation: select-top-slide-in 300ms cubic-bezier(0.05, 0.7, 0.1, 1);
 }
@@ -203,6 +211,30 @@ p + p {
   to {
     opacity: 0;
     transform: translateY(-16px);
+  }
+}
+
+@keyframes toast-bottom-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-bottom-slide-out {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-24px);
   }
 }
 

@@ -14,8 +14,6 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = createSignal("")
   const passwordShowerProps = createPasswordShower()
 
-  // onMount(() => window.accessToken && navigate("/lk"))
-
   return (
     <MainLayout noFooter class="max-w-[500px]">
       <div class="flex h-11 w-full shrink flex-row items-center justify-center gap-2">

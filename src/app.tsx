@@ -2,15 +2,18 @@ import { Router } from "@solidjs/router"
 import { FileRoutes } from "@solidjs/start/router"
 import { createSignal, ErrorBoundary, JSX, ParentProps, Show, splitProps, Suspense } from "solid-js"
 import "./app.css"
-import LegalFooter from "./components/legal-footer"
 import Error from "./routes/(error)"
 import { twMerge } from "tailwind-merge"
+import { MetaProvider, Title } from "@solidjs/meta"
 
 export default function App() {
   return (
-    <Router root={Root}>
-      <FileRoutes />
-    </Router>
+    <MetaProvider>
+      <Title>Bilee Bots</Title>
+      <Router root={Root}>
+        <FileRoutes />
+      </Router>
+    </MetaProvider>
   )
 }
 

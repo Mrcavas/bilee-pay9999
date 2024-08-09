@@ -14,11 +14,7 @@ type PaymentMethod = {
   id: number
   name: string
   icon_id?: number
-  icon: {
-    id: number
-    url: string
-    name: string
-  }
+  icon: Icon
   min_amount: number
   max_amount: number
   commission: number
@@ -47,6 +43,7 @@ type PaymentMethodCreate = {
   min_commission_amount: number
   payment_system_id: number
   params: ParamData[]
+  enabled: boolean
 }
 
 type ParamData = {
@@ -58,6 +55,7 @@ type Icon = {
   id: number
   url: string
   name: string
+  colored: boolean
 }
 
 type Project = {
@@ -95,13 +93,25 @@ type MethodParam = {
   name: string
   key_name: string
   is_optional: boolean
+  type: "string" | "int" | "float" | "boolean" | "enum"
   example: string
-} & (
-  | {
-      type: "string" | "int" | "float" | "boolean"
-    }
-  | {
-      type: "enum"
-      enum: string[]
-    }
-)
+  enum: string[]
+}
+
+type TelegramUser = {
+  id?: string
+  full_name?: string
+  username?: string
+  avatar?: string
+  invalid?: boolean
+}
+
+type TransactionData = {
+  telegram_id: string
+  method_id: number
+  amount: number
+}
+
+type TransactionResponse = {
+  url: string
+}

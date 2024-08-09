@@ -48,49 +48,63 @@ import drag from "~/assets/drag.svg"
 import pause from "~/assets/pause.svg"
 import play from "~/assets/play.svg"
 import rearrange from "~/assets/rearrange.svg"
-import sbpImg from "~/assets/sbp.svg"
 import selectIcon from "~/assets/select-icon.svg"
 import spinner from "~/assets/spinner.svg"
 import trash from "~/assets/trash.svg"
 import Button from "~/components/button"
+import { CheckBox } from "~/components/checkbox"
 import { GoCardBtn, GoCardInsides } from "~/components/gocard"
 import Icon from "~/components/icon"
+import IconDisplay from "~/components/icon-display"
 import Input from "~/components/input"
 import Selector from "~/components/selector"
-import { Field, areFieldsFilled, createValidatedField, mainScrollable, resetFields } from "~/utilities"
+import createErrorToaster, {
+  Field,
+  areFieldsFilled,
+  createValidatedField,
+  mainScrollable,
+  resetFields,
+} from "~/utilities"
 
-const sbpIcon: Icon = {
-  id: 1,
-  url: sbpImg,
-  name: "sbp",
-}
+function MethodCard(
+  props: { method: PaymentMethod; paymentSystems: Accessor<PaymentSystem[]> } & JSX.IntrinsicElements["button"]
+) {
+  const paymentSystem = props.paymentSystems().find(p => p.id === props.method.payment_system_id)
 
-function MethodCard(props: { method: PaymentMethod } & JSX.IntrinsicElements["button"]) {
   return (
     <GoCardBtn
-      icon={<img src={props.method.icon.url} class="h-6 w-6" />}
-      description={"props.method.description"}
+      icon={<IconDisplay icon={props.method.icon} class="h-8 w-8" />}
+      description={paymentSystem?.name}
       title={props.method.name}
-      class="flex-grow rounded-content bg-hint2/15"
+      class={"flex-grow rounded-content " + (props.method.enabled ? "bg-hint2/15" : "dashed")}
       {...props}
     />
   )
 }
 
-function SortableMethodCard(props: { item: number; methods: Accessor<PaymentMethod[]>; noDrag?: boolean }) {
+function SortableMethodCard(props: {
+  item: number
+  methods: Accessor<PaymentMethod[]>
+  paymentSystems: Accessor<PaymentSystem[]>
+  noDrag?: boolean
+}) {
   const sortable = createSortable(props.item)
   const method = props.methods().find(method => method.id === props.item)!
+  const paymentSystem = props.paymentSystems().find(p => p.id === method.payment_system_id)!
 
   return (
     <div
       ref={sortable.ref}
       style={transformStyle(sortable.transform)}
-      class="flex flex-grow touch-none select-none flex-row items-center gap-3 rounded-content bg-hint2/15 px-4 py-3.5"
+      class={
+        "flex flex-grow touch-none select-none flex-row items-center gap-3 rounded-content px-4 py-3.5 " +
+        (method.enabled ? "bg-hint2/15" : "dashed")
+      }
       classList={{ "opacity-25": sortable.isActiveDraggable }}
       {...(props.noDrag ? {} : sortable.dragActivators)}>
       <GoCardInsides
-        icon={<img src={method.icon.url} class="h-6 w-6" />}
-        description={"method.description"}
+        icon={<IconDisplay icon={method.icon} class="h-6 w-6" />}
+        description={paymentSystem.name}
         title={method.name}>
         <Icon icon={drag} class={"h-6 w-6 " + (props.noDrag ? "bg-hint2" : "bg-text")} />
       </GoCardInsides>
@@ -98,21 +112,36 @@ function SortableMethodCard(props: { item: number; methods: Accessor<PaymentMeth
   )
 }
 
-function PrimaryDroppable(props: { items: number[]; methods: Accessor<PaymentMethod[]> }) {
+function PrimaryDroppable(props: {
+  items: number[]
+  methods: Accessor<PaymentMethod[]>
+  paymentSystems: Accessor<PaymentSystem[]>
+}) {
   const droppable = createDroppable("primary")
 
   return (
     <div ref={droppable.ref} class="flex flex-col gap-3">
       <SortableProvider ids={props.items}>
         <For each={props.items}>
-          {item => <SortableMethodCard item={item} methods={props.methods} noDrag={props.items.length === 1} />}
+          {item => (
+            <SortableMethodCard
+              item={item}
+              methods={props.methods}
+              noDrag={props.items.length === 1}
+              paymentSystems={props.paymentSystems}
+            />
+          )}
         </For>
       </SortableProvider>
     </div>
   )
 }
 
-function SecondaryDroppable(props: { items: number[]; methods: Accessor<PaymentMethod[]> }) {
+function SecondaryDroppable(props: {
+  items: number[]
+  methods: Accessor<PaymentMethod[]>
+  paymentSystems: Accessor<PaymentSystem[]>
+}) {
   const droppable = createDroppable("secondary")
 
   return (
@@ -134,7 +163,7 @@ function SecondaryDroppable(props: { items: number[]; methods: Accessor<PaymentM
               </div>
             )
           })()}>
-          {item => <SortableMethodCard item={item} methods={props.methods} />}
+          {item => <SortableMethodCard item={item} methods={props.methods} paymentSystems={props.paymentSystems} />}
         </For>
       </SortableProvider>
     </div>
@@ -145,10 +174,12 @@ function MethodsEdit({
   ref,
   sortedMethods,
   setSaver,
+  paymentSystems,
 }: {
   ref: Setter<HTMLDivElement | undefined>
   sortedMethods: Accessor<PaymentMethod[]>
   setSaver: Setter<(cb: (primaryIds: number[], secondaryIds: number[]) => void) => void>
+  paymentSystems: Accessor<PaymentSystem[]>
 }) {
   const primaryMethods = sortedMethods().filter(method => method.primary)
   const secondaryMethods = sortedMethods().filter(method => !method.primary)
@@ -236,19 +267,25 @@ function MethodsEdit({
       <DragDropSensors />
       <div ref={ref}>
         <div class="mb-1.5 select-none px-2 text-card font-semibold">Основные способы:</div>
-        <PrimaryDroppable methods={sortedMethods} items={containers.primary} />
-        <div class="mb-1.5 mt-3 select-none px-2 text-card font-semibold">Скрытые способы:</div>
-        <SecondaryDroppable methods={sortedMethods} items={containers.secondary} />
+        <PrimaryDroppable methods={sortedMethods} items={containers.primary} paymentSystems={paymentSystems} />
+        <div class="mb-1.5 mt-3 select-none px-2 text-card font-semibold">Неосновные способы:</div>
+        <SecondaryDroppable methods={sortedMethods} items={containers.secondary} paymentSystems={paymentSystems} />
       </div>
       <DragOverlay>
         {draggable => {
           const method = sortedMethods().find(method => method.id === draggable?.id)
           if (!method) return null
+          const paymentSystem = paymentSystems().find(p => p.id === method.payment_system_id)
+          if (!paymentSystem) return null
           return (
-            <div class="flex flex-grow touch-none flex-row items-center gap-3 rounded-content bg-fg bg-hint2/15 px-4 py-3.5">
+            <div
+              class={
+                "flex flex-grow touch-none flex-row items-center gap-3 rounded-content bg-fg bg-hint2/15 px-4 py-3.5 " +
+                (method.enabled ? "bg-hint2/15" : "dashed")
+              }>
               <GoCardInsides
-                icon={<img src={method.icon.url} class="h-6 w-6" />}
-                description={"method.description"}
+                icon={<IconDisplay icon={method.icon} class="h-6 w-6" />}
+                description={paymentSystem.name}
                 title={method.name}>
                 <Icon icon={drag} class="h-6 w-6 bg-text" />
               </GoCardInsides>
@@ -279,6 +316,7 @@ export default function MethodsTab(props: { project: Project }) {
     if (_methods === undefined) return
     setLoading(false)
     setMethods(_methods)
+    console.log(_methods)
   })
 
   createEffect(() => {
@@ -354,19 +392,19 @@ export default function MethodsTab(props: { project: Project }) {
           when={isEditing()}
           fallback={
             <div class="flex flex-wrap gap-3">
-              <Index each={sortedMethods()}>
+              <For each={sortedMethods()}>
                 {item => (
                   <EditMethodDialog
                     project={props.project}
                     icons={icons()}
                     paymentSystems={paymentSystems()}
-                    method={item()}
+                    method={item}
                     methods={methods}
                     setMethods={setMethods}
-                    asChild={props => <MethodCard method={item()} {...props} />}
+                    asChild={props => <MethodCard method={item} {...props} paymentSystems={paymentSystems} />}
                   />
                 )}
-              </Index>
+              </For>
               <Show when={methods().length < 8}>
                 <EditMethodDialog
                   project={props.project}
@@ -388,7 +426,12 @@ export default function MethodsTab(props: { project: Project }) {
               </Show>
             </div>
           }>
-          <MethodsEdit ref={setEditorRef} sortedMethods={sortedMethods} setSaver={setSaver} />
+          <MethodsEdit
+            ref={setEditorRef}
+            sortedMethods={sortedMethods}
+            setSaver={setSaver}
+            paymentSystems={paymentSystems}
+          />
         </Show>
       </Show>
     </>
@@ -413,9 +456,8 @@ function EditMethodDialog(
         }
     )
 ) {
-  console.log(props.icons, props.paymentSystems)
   const [isOpen, setIsOpen] = createSignal(false)
-  const name = createValidatedField(v => !!v, props.method?.name ?? "")
+  const name = createValidatedField(v => !!v && v.length <= 16, props.method?.name ?? "")
   const inRange = (v: number) => v >= 0 && v <= 1000000
   const min_amount: Field<string> = createValidatedField(
     v => !!v && inRange(+v),
@@ -432,14 +474,20 @@ function EditMethodDialog(
   )
   const [icon, setIcon] = createSignal(props.method?.icon)
   const findPaymentSystem = (id: number) => props.paymentSystems.find(s => s.id === id)
-  const [paymentSystem, setPaymentSystem] = createSignal(
-    props.method?.payment_system_id ? findPaymentSystem(props.method.payment_system_id) : undefined
-  )
+  const initialPaymentSystem = props.method?.payment_system_id
+    ? findPaymentSystem(props.method.payment_system_id)
+    : undefined
+  const [paymentSystem, setPaymentSystem] = createSignal(initialPaymentSystem)
   const [isLoading, setLoading] = createSignal(false)
   const [isDeleteLoading, setDeleteLoading] = createSignal(false)
-  const [errorMessage, setErrorMessage] = createSignal("")
   const [enabled, setEnabled] = createSignal(props.method?.enabled ?? true)
   const [paramsData, setParamsData] = createSignal(props.method?.params ?? [])
+  const paramsFilled = () =>
+    paymentSystem()
+      ?.method_params.filter(p => !p.is_optional)
+      .every(p => paramsData().find(d => d.param_id === p.id))
+
+  const [displayError, toaster] = createErrorToaster()
 
   return (
     <Dialog.Root
@@ -451,9 +499,13 @@ function EditMethodDialog(
         setLoading(false)
         setDeleteLoading(false)
         setIcon(props.method?.icon)
+        setPaymentSystem(initialPaymentSystem)
+        setEnabled(props.method?.enabled ?? true)
+        setParamsData(props.method?.params ?? [])
       }}>
       <Dialog.Trigger asChild={props.asChild} />
       <Portal>
+        {toaster()}
         <Dialog.Backdrop class="fixed left-0 top-0 h-full w-full bg-hint1/15" />
         <Dialog.Positioner class="fixed left-0 top-0 flex h-full w-full flex-col items-center justify-center px-4 py-10">
           <Dialog.Content class="scrollbar-hide w-full max-w-[520px] overflow-y-auto rounded-card bg-fg p-4">
@@ -465,9 +517,6 @@ function EditMethodDialog(
                 <Icon icon={close} class="h-6 w-6 bg-text" />
               </Dialog.CloseTrigger>
             </div>
-            <Show when={errorMessage()}>
-              <div class="-mt-2 mb-2 w-full text-center text-sm text-error">{errorMessage()}</div>
-            </Show>
 
             <Show when={!props.new}>
               <div class="flex flex-row gap-2.5">
@@ -521,6 +570,7 @@ function EditMethodDialog(
             <Selector
               class="mt-2"
               name="Платежная система"
+              value={() => paymentSystem()?.id.toString()}
               onSelect={v => setPaymentSystem(findPaymentSystem(+v))}
               items={props.paymentSystems.map(system => ({
                 value: system.id.toString(),
@@ -529,7 +579,7 @@ function EditMethodDialog(
             />
 
             <div class="mt-2 grid grid-cols-[auto_1fr] gap-2">
-              <IconSelector icons={props.icons} onSelect={setIcon} />
+              <IconSelector icons={props.icons} value={() => icon()} onSelect={setIcon} />
               <Input {...name.inputProps()} type="text" name="Название" />
             </div>
 
@@ -558,8 +608,8 @@ function EditMethodDialog(
             <Input {...min_commission_amount.inputProps()} type="number" name="Мин. комиссия, руб." class="mt-2" />
 
             <Show when={paymentSystem()?.method_params && paymentSystem()!.method_params.length > 0}>
-              <div class="mt-4 px-1 text-card font-semibold">Тех. параметры</div>
-              <div сlass="flex flex-col gap-2">
+              <div class="mb-2 mt-3 px-2 font-semibold">Тех. параметры</div>
+              <div class="flex flex-col gap-2">
                 <For each={paymentSystem()?.method_params}>
                   {param => <MethodParam param={param} paramsData={paramsData} setParamsData={setParamsData} />}
                 </For>
@@ -569,9 +619,13 @@ function EditMethodDialog(
             <Button
               class="mt-4"
               loading={isLoading()}
-              disabled={!areFieldsFilled(name, min_amount, max_amount, commission, min_commission_amount) || !icon()}
+              disabled={
+                !areFieldsFilled(name, min_amount, max_amount, commission, min_commission_amount) ||
+                !icon() ||
+                !paramsFilled()
+              }
               onClick={async () => {
-                if (min_amount() > max_amount()) {
+                if (+min_amount() > +max_amount()) {
                   min_amount.invalidate()
                   max_amount.invalidate()
                   return
@@ -587,30 +641,19 @@ function EditMethodDialog(
                     icon_id: icon()!.id,
                     payment_system_id: paymentSystem()!.id,
                     params: paramsData(),
+                    enabled: enabled(),
                   })
                   if (!resp.success) {
-                    setErrorMessage(resp.error.user_message)
                     setLoading(false)
+                    // setErrorMessage(resp.error?.user_message ?? "Что-то пошло не так")
+                    displayError(resp.error?.user_message ?? "Что-то пошло не так")
                     return
                   }
 
-                  props.setMethods(
-                    props.methods().map(m => {
-                      if (m.id !== props.method!.id) return m
-                      return {
-                        ...m,
-                        name: name(),
-                        min_amount: +min_amount(),
-                        max_amount: +max_amount(),
-                        commission: +commission(),
-                        min_commission_amount: +min_commission_amount(),
-                        icon_id: icon()!.id,
-                        icon: icon()!,
-                        payment_system_id: paymentSystem()!.id,
-                        params: paramsData(),
-                      }
-                    })
-                  )
+                  if (!resp.result.icon) resp.result.icon = props.icons.find(icon => resp.result.icon_id === icon.id)!
+
+                  // props.method = resp.result
+                  props.setMethods([...props.methods().filter(m => m.id !== props.method!.id), resp.result])
                 } else {
                   const resp = await createPaymentMethod(props.project.id, {
                     name: name(),
@@ -621,12 +664,16 @@ function EditMethodDialog(
                     icon_id: icon()!.id,
                     payment_system_id: paymentSystem()!.id,
                     params: paramsData(),
+                    enabled: enabled(),
                   })
                   if (!resp.success) {
-                    setErrorMessage(resp.error.user_message)
                     setLoading(false)
+                    // setErrorMessage(resp.error?.user_message ?? "Что-то пошло не так")
+                    displayError(resp.error?.user_message ?? "Что-то пошло не так")
                     return
                   }
+
+                  if (!resp.result.icon) resp.result.icon = props.icons.find(icon => resp.result.icon_id === icon.id)!
 
                   if (props.methods().length > 0) {
                     props.setMethods([...props.methods(), resp.result])
@@ -647,34 +694,27 @@ function EditMethodDialog(
 
 type IconSelectorProps = {
   icons: Icon[]
-  defaultId?: number
-  onSelect?: (icon: Icon) => void
+  value: Accessor<Icon | undefined>
+  onSelect: (icon: Icon) => void
 }
 
 function IconSelector(props: IconSelectorProps) {
   const [isOpen, setOpen] = createSignal(false)
-  const [selectedIcon, setSelectedIcon] = createSignal(
-    props.defaultId ? props.icons.find(icon => icon.id === props.defaultId)! : undefined
-  )
 
   return (
     <Select.Root
       open={isOpen()}
       onOpenChange={({ open }) => setOpen(open)}
       items={props.icons}
-      onValueChange={v => {
-        const icon = props.icons.find(icon => icon.id === +v.value[0])!
-        setSelectedIcon(icon)
-        props.onSelect?.(icon)
-      }}
-      defaultValue={props.defaultId ? [`${props.defaultId}`] : undefined}
+      onValueChange={v => props.onSelect(props.icons.find(icon => icon.id === +v.value[0])!)}
+      value={props.value ? (props.value() ? [props.value()!.id.toString()] : []) : undefined}
       itemToValue={icon => `${icon.id}`}>
       <Select.Control class="h-full w-full">
         <Select.Trigger class="relative flex h-full w-full flex-row items-center gap-1 rounded-content bg-hint2/15 p-2">
           <Show
-            when={selectedIcon()}
+            when={props.value()}
             fallback={<Icon icon={selectIcon} class="h-[calc(1rem+1.2em)] w-[calc(1rem+1.2em)] bg-text" />}>
-            <img src={selectedIcon()!.url} alt="" class="h-[calc(1rem+1.2em)] w-[calc(1rem+1.2em)]" />
+            <IconDisplay icon={props.value()!} class="h-[calc(1rem+1.2em)] w-[calc(1rem+1.2em)]" />
           </Show>
           <Select.Indicator>
             <Icon
@@ -688,8 +728,8 @@ function IconSelector(props: IconSelectorProps) {
         <Select.Content class="z-10 grid grid-cols-4 overflow-hidden rounded-content bg-fg p-3 shadow-menu focus:outline-none">
           <Index each={props.icons}>
             {item => (
-              <Select.Item item={item()} class="cursor-pointer rounded-[8px] p-2 data-[highlighted]:bg-text/10">
-                <img src={item().url} alt="" class="aspect-square h-full" />
+              <Select.Item item={item()} class="cursor-pointer rounded-[8px] p-1 data-[highlighted]:bg-text/10">
+                <IconDisplay icon={item()} class="aspect-square h-9" />
               </Select.Item>
             )}
           </Index>
@@ -708,13 +748,106 @@ function MethodParam({
   paramsData: Accessor<ParamData[]>
   setParamsData: Setter<ParamData[]>
 }) {
+  const initialParam = paramsData().find(p => p.param_id === param.id)
+
   return (
     <Switch>
-      <Match when={param.type === "boolean"}>checkmark</Match>
-      <Match when={param.type === "enum"}>selector</Match>
-      <Match when={param.type === "float"}>input</Match>
-      <Match when={param.type === "int"}>input</Match>
-      <Match when={param.type === "string"}>input</Match>
+      <Match when={param.type === "boolean"}>
+        <CheckBox
+          name={param.name}
+          checked={initialParam?.value as boolean | undefined}
+          onCheck={checked =>
+            setParamsData(
+              paramsData()
+                .filter(p => p.param_id !== param.id)
+                .concat({
+                  param_id: param.id,
+                  value: checked,
+                })
+            )
+          }
+        />
+      </Match>
+      <Match when={param.type === "enum"}>
+        <Selector
+          name={param.name}
+          defaultValue={initialParam?.value as string | undefined}
+          onSelect={value =>
+            setParamsData(
+              paramsData()
+                .filter(p => p.param_id !== param.id)
+                .concat({
+                  param_id: param.id,
+                  value,
+                })
+            )
+          }
+          items={param.enum.map(v => ({
+            value: v,
+            label: v,
+          }))}
+        />
+      </Match>
+      <Match when={param.type === "int"}>
+        {(() => {
+          const [value, setValue] = createSignal(initialParam?.value ? initialParam!.value.toString() : "")
+
+          return (
+            <Input
+              name={param.name}
+              type="tel"
+              value={value()}
+              onInput={(v, e) => {
+                if (/^\d*$/.test(v)) {
+                  setValue(v)
+                  setParamsData(
+                    paramsData()
+                      .filter(p => p.param_id !== param.id)
+                      .concat({
+                        param_id: param.id,
+                        value: +value(),
+                      })
+                  )
+                } else (e.target as HTMLInputElement).value = value()
+              }}
+            />
+          )
+        })()}
+      </Match>
+      <Match when={param.type === "float"}>
+        <Input
+          name={param.name}
+          value={initialParam?.value as number | undefined}
+          type="number"
+          onInput={v =>
+            setParamsData(
+              paramsData()
+                .filter(p => p.param_id !== param.id)
+                .concat({
+                  param_id: param.id,
+                  value: +v,
+                })
+            )
+          }
+        />
+      </Match>
+      <Match when={param.type === "string"}>
+        <Input
+          name={param.name}
+          type="text"
+          value={initialParam?.value as string | undefined}
+          onInput={value =>
+            setParamsData(
+              paramsData()
+                .filter(p => p.param_id !== param.id)
+                .concat({
+                  param_id: param.id,
+                  value,
+                })
+            )
+          }
+        />
+      </Match>
     </Switch>
   )
 }

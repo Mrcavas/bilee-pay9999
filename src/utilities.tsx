@@ -1,10 +1,12 @@
 import { debounce } from "@solid-primitives/scheduled"
-import { Accessor, createSignal, Match, Setter, Show, Switch } from "solid-js"
+import { Accessor, createSignal, JSX, Match, Setter, Show, Switch } from "solid-js"
 import checkmark_animated from "./assets/checkmark-animated.svg"
 import hidePassword from "./assets/hide-password.svg"
 import showPassword from "./assets/show-password.svg"
 import spinner from "./assets/spinner.svg"
+import close from "~/assets/close.svg"
 import Icon from "./components/icon"
+import { createToaster, Toast, Toaster } from "@ark-ui/solid"
 
 const formatter = new Intl.NumberFormat("ru")
 
@@ -78,11 +80,11 @@ function getCaretPosition(editable: HTMLDivElement) {
   return caretPos
 }
 
-function setCaretPosition(elem: HTMLElement, pos: number) {
+export function setCaretPosition(elem: HTMLElement, pos: number) {
   const range = document.createRange()
   const sel = window.getSelection()
   if (pos < 0) pos = 0
-  if (!sel || pos > (elem.childNodes[0].textContent?.length ?? 0)) return console.error("Selection outside of range")
+  if (!sel || pos > (elem.innerText.length ?? 0)) return console.error("Selection outside of range")
 
   range.setStart(elem.childNodes[0], pos)
   range.collapse(true)
@@ -122,10 +124,10 @@ export function createDebouncedSaver<T>(
   const append = (
     <Switch>
       <Match when={loadingState() === "loading"}>
-        <Icon icon={spinner} class="h-6 w-6 bg-hint2" />
+        <Icon icon={spinner} class="h-6 w-6 bg-primary" />
       </Match>
       <Match when={loadingState() === "finished"}>
-        <Icon icon={checkmark_animated} class="h-6 w-6 bg-hint2" />
+        <Icon icon={checkmark_animated} class="h-6 w-6 bg-primary" />
       </Match>
     </Switch>
   )
@@ -283,4 +285,31 @@ export function isObjectEmpty(obj: object) {
   }
 
   return true
+}
+
+export default function createErrorToaster(): [(error: string) => void, () => JSX.Element] {
+  const toaster = createToaster({
+    placement: "top",
+    gap: 36,
+    duration: 5000,
+    removeDelay: 149,
+  })
+
+  return [
+    (error: string) => toaster.create({ title: error }),
+    () => (
+      <Toaster toaster={toaster}>
+        {toast => (
+          <Toast.Root class="max-w-96 rounded-card bg-fg shadow-menu">
+            <div class="flex h-full w-full flex-row items-start gap-3 rounded-card bg-error/10 p-4 pl-5">
+              <Toast.Title class="font-semibold">{toast().title}</Toast.Title>
+              <Toast.CloseTrigger class="shrink-0 rounded-[8px]">
+                <Icon icon={close} class="h-6 w-6 bg-text" />
+              </Toast.CloseTrigger>
+            </div>
+          </Toast.Root>
+        )}
+      </Toaster>
+    ),
+  ]
 }

@@ -1,5 +1,5 @@
 import { Select } from "@ark-ui/solid"
-import { createSignal, JSX } from "solid-js"
+import { Accessor, createSignal, JSX } from "solid-js"
 import { Index, Portal } from "solid-js/web"
 import arrow from "~/assets/arrow.svg"
 import check from "~/assets/check.svg"
@@ -11,6 +11,7 @@ type SelectorProps = {
     value: string
     label: JSX.Element
   }[]
+  value?: Accessor<string | undefined>
   defaultValue?: string
   onSelect?: (value: string) => void
 }
@@ -25,6 +26,9 @@ export default function Selector(props: SelectorProps & Pick<JSX.IntrinsicElemen
       items={props.items}
       positioning={{ sameWidth: true }}
       onValueChange={v => props.onSelect?.(v.value[0])}
+      {...(props.value ? {
+        value: props.value() ? [props.value()!] : []
+      } : {})}
       defaultValue={props.defaultValue ? [props.defaultValue] : undefined}
       class={props.class}>
       <Select.Control>

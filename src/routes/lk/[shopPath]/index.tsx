@@ -6,6 +6,7 @@ import PaymentTab from "./(payment)"
 import APITab from "./(api)"
 import MethodsTab from "./(methods)"
 import { createAPIResource, getShops } from "~/api"
+import { Title } from "@solidjs/meta"
 
 export default function Shop(props: RouteSectionProps) {
   const tabsRefs: Record<string, HTMLButtonElement> = {}
@@ -23,6 +24,7 @@ export default function Shop(props: RouteSectionProps) {
 
   return (
     <Show when={selectedShop()}>
+      <Title>{selectedShop()!.name}</Title>
       <div class="overflow-hidden rounded-card bg-fg">
         <Tabs.Root
           value={tab()}
